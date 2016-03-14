@@ -1,7 +1,7 @@
 
 For the latest online version of the README.md see:
     
-  https://github.com/hewlettpackard/sparkle/README.md
+  https://github.com/HewlettPackard/sparkle/blob/master/README.md
 
 #About
 
@@ -13,7 +13,7 @@ Hewlett Packard Labs is making these changes available under the same license as
 
 #Contributors
 
-For a list of contributors see [AUTHORS](https://github.com/hewlettpackard/sparkle/AUTHORS).
+For a list of contributors see [AUTHORS](https://github.com/HewlettPackard/sparkle/blob/master/AUTHORS).
 
 #Brief history
 
