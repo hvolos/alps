@@ -1,80 +1,98 @@
-# * (c) Copyright 2016 Hewlett Packard Enterprise Development LP
-# *
-# * Licensed under the Apache License, Version 2.0 (the "License");
-# * you may not use this file except in compliance with the License.
-# * You may obtain a copy of the License at
-# *
-# *     http://www.apache.org/licenses/LICENSE-2.0
-# *
-# * Unless required by applicable law or agreed to in writing, software
-# * distributed under the License is distributed on an "AS IS" BASIS,
-# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# * See the License for the specific language governing permissions and
-# * limitations under the License.
-#
+[//]: # ( (c) Copyright 2016 Hewlett Packard Enterprise Development LP             )
+[//]: # (                                                                          )
+[//]: # ( Licensed under the Apache License, Version 2.0 (the "License");          )
+[//]: # ( you may not use this file except in compliance with the License.         )
+[//]: # ( You may obtain a copy of the License at                                  )
+[//]: # (                                                                          )
+[//]: # (     http://www.apache.org/licenses/LICENSE-2.0                           )
+[//]: # (                                                                          )
+[//]: # ( Unless required by applicable law or agreed to in writing, software      )
+[//]: # ( distributed under the License is distributed on an "AS IS" BASIS,        )
+[//]: # ( WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. )
+[//]: # ( See the License for the specific language governing permissions and      )
+[//]: # ( limitations under the License.                                           )
 
-# ALPINiSM
 
-ALPINiSM (Abstraction Layer for Programming Persistent Shared Memory)
-provides a low-level abstraction layer that reliefs the user from the 
-details of mapping, addressing, and allocating persistent shared memory 
-(also known as fabric-attached memory).
+# Alps
+
+![Alps](doc/figures/alps-logo.png)
+
+Alps (Allocator for Persistent Shared memory) provides a low-level 
+abstraction layer that reliefs the user from the details of mapping, 
+addressing, and allocating persistent shared memory.
 This layer can be used as a building block for building higher level 
 abstractions and data structures such as heaps, logs, etc.
 
-## Building ALPINiSM
+## Building Alps
 
-	$ cd $ALPS
-	$ mkdir build
-	$ cd build
+```
+$ cd $ALPS
+$ mkdir build
+$ cd build
+```
+
+### Building Alps for NUMA
 
 For Debug build type (default):
 
-	$ cmake .. -DTARGET_ARCH_MEM=NV-NCC-FAM -DCMAKE_BUILD_TYPE=Debug
+```
+$ cmake .. -DTARGET_ARCH_MEM=CC-NUMA -DCMAKE_BUILD_TYPE=Debug
+$ make
+```
 
 For Release build type:
 
-	$ cmake .. -DTARGET_ARCH_MEM=NV-NCC-FAM -DCMAKE_BUILD_TYPE=Release
+```
+$ cmake .. -DTARGET_ARCH_MEM=CC-NUMA -DCMAKE_BUILD_TYPE=Release
+$ make
+```
 
-## Primary Third-Party Dependencies
+## Installing Alps
 
-The library depends on the packages listed below. Internal development builds
-these packages from source placed under a third-party directory $alps/third-party.
-Alternatively, you can try installing the development packages available through
-your Linux distribution.
+To install in default location:
 
-gflags
-gtest
-libbacktrace
-yaml-cpp-0.5.2
+```
+$ make install
+```
 
+To install in custom location: 
 
-## Other Dependencies
+```
+$ make DESTDIR=MY_CUSTOM_LOCATION install
+```
 
-apt-get install vim git
-apt-get install cmake
-apt-get install libnuma 
-apt-get install libnuma-dev
+## Installing Dependencies
 
-apt-get install libconfig++-dev
+To install necessary packages:
 
-sudo apt-get install libboost-all-dev
-
-OR
-
-sudo apt-get install libboost-dev
-sudo apt-get install libboost-serialization-dev
-
-sudo apt-get install libattr1-dev
-sudo apt-get install libyaml-cpp-dev
-
-sudo apt-get install python3
+```
+./install-dep
+```
 
 ## Example Programs
 
-ALPINiSM comes with several samples in the `examples` directory.
+Alps comes with several samples in the `examples` directory.
+
+
+## Configuring Environment
+
+Alps initializes its internals by loading configuration options 
+in the following order: 
+* Load options from a system-wide configuration file: /etc/default/alps.[yml|yaml],
+* Load options from the file referenced by the value of the environment variable ALPS_CONF, and
+* Load options through a user-defined configuration file or object (passed through the Alps API)
 
 ## Running Tests
+
+Testing requires building Alps first. Once Alps, is built, 
+unit tests can be run using CTest.
+
+### TMPFS
+
+To run unit tests against tmpfs (located at: /dev/shm):
+```
+ctest -R tmpfs
+```
 
 ## Style Guide 
 
