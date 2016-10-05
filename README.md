@@ -1,46 +1,83 @@
+# * (c) Copyright 2016 Hewlett Packard Enterprise Development LP
+# *
+# * Licensed under the Apache License, Version 2.0 (the "License");
+# * you may not use this file except in compliance with the License.
+# * You may obtain a copy of the License at
+# *
+# *     http://www.apache.org/licenses/LICENSE-2.0
+# *
+# * Unless required by applicable law or agreed to in writing, software
+# * distributed under the License is distributed on an "AS IS" BASIS,
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# * See the License for the specific language governing permissions and
+# * limitations under the License.
+#
 
-For the latest online version of the README.md see:
-    
-  https://github.com/HewlettPackard/sparkle/blob/master/README.md
+# ALPINiSM
 
-#About
+ALPINiSM (Abstraction Layer for Programming Persistent Shared Memory)
+provides a low-level abstraction layer that reliefs the user from the 
+details of mapping, addressing, and allocating persistent shared memory 
+(also known as fabric-attached memory).
+This layer can be used as a building block for building higher level 
+abstractions and data structures such as heaps, logs, etc.
 
-This package contains a number of Hewlett Packard Labs developed performance enhancements to the Apache Spark project which is available at https://github.com/apache/spark and https://spark.apache.org/.
+## Building ALPINiSM
 
-The contents of this repository are obviously not an entire redistribution of Spark. They are simply the files that we have modified to achieve significant performance enhancements for memory-bandwidth intensive workloads on the Spark 1.2 release.
+	$ cd $ALPS
+	$ mkdir build
+	$ cd build
 
-Hewlett Packard Labs is making these changes available under the same license as Spark - the Apache 2.0 License - and is collaborating with HortonWorks to make these enhancements available in the Spark upstream distribution and through their Enterprise Spark at Scale offering. More information on the HortonWorks/Hewlett Packard Labs collaboration is available at http://hortonworks.com/press-releases/hortonworks-hpe-accelerate-spark/.
+For Debug build type (default):
 
-#Contributors
+	$ cmake .. -DTARGET_ARCH_MEM=NV-NCC-FAM -DCMAKE_BUILD_TYPE=Debug
 
-For a list of contributors see [AUTHORS](https://github.com/HewlettPackard/sparkle/blob/master/AUTHORS).
+For Release build type:
 
-#Brief history
+	$ cmake .. -DTARGET_ARCH_MEM=NV-NCC-FAM -DCMAKE_BUILD_TYPE=Release
 
-Hewlett Packard Labs and HortonWorks have recently deepened their collaboration to further drive Apache Spark innovation. As part of the relationship, Hewlett Packard Labs and Hortonworks will work on key performance improvements for Spark together within the open source community, and integrate these new components/capabilities into the HDP platform for the benefit of new and existing customers and users.
-The performance enhancements community are:
-* Dramatically improved shuffle execution within Spark which enables a better performance across many workloads and all platforms.
-* Improved memory density utilization with Spark so that larger data sets can be processed in the same memory footprint, which enables better scalability and brand new use cases simultaneously.
+## Primary Third-Party Dependencies
 
-This collaboration between Hortonworks and Hewlett Packard Labs indicates our mutual support for the growing spark community and solutions. Our ongoing investments will continue to focus on accelerating Spark adoption at scale, integration of Spark into broad data architectures supported by Apache Yarn, enhancements to Spark for performance and better access points for spark application like Apache Zeppelin.
+The library depends on the packages listed below. Internal development builds
+these packages from source placed under a third-party directory $alps/third-party.
+Alternatively, you can try installing the development packages available through
+your Linux distribution.
 
-#License
+gflags
+gtest
+libbacktrace
+yaml-cpp-0.5.2
 
-    The code in this repository is licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
 
-       http://www.apache.org/licenses/LICENSE-2.0
+## Other Dependencies
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+apt-get install vim git
+apt-get install cmake
+apt-get install libnuma 
+apt-get install libnuma-dev
 
-#Copyright
+apt-get install libconfig++-dev
 
-	(c) Copyright 2016 Hewlett Packard Enterprise Development LP
+sudo apt-get install libboost-all-dev
 
-**NOTE**: This software depends on other packages that may be licensed under different open source licenses.
+OR
 
+sudo apt-get install libboost-dev
+sudo apt-get install libboost-serialization-dev
+
+sudo apt-get install libattr1-dev
+sudo apt-get install libyaml-cpp-dev
+
+sudo apt-get install python3
+
+## Example Programs
+
+ALPINiSM comes with several samples in the `examples` directory.
+
+## Running Tests
+
+## Style Guide 
+
+We follow the Google C++ style guide available here:
+
+https://google.github.io/styleguide/cppguide.html
