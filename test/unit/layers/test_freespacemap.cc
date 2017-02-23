@@ -30,13 +30,13 @@ TEST(FreeSpaceMapTest, alloc_extent)
     size_t LEN = 64;
     size_t MAX_BLOCK = LEN-1;
 
-    fsmap.free_extent(Extent(0, LEN));
+    fsmap.free_extent(ExtentInterval(0, LEN));
 
-    Extent e1;
-    Extent e2;
-    Extent e3;
-    Extent e4;
-    Extent e5;
+    ExtentInterval e1;
+    ExtentInterval e2;
+    ExtentInterval e3;
+    ExtentInterval e4;
+    ExtentInterval e5;
 
     EXPECT_EQ(0, fsmap.alloc_extent(1, &e1));
     EXPECT_EQ(0, fsmap.alloc_extent(2, &e2));
@@ -45,7 +45,7 @@ TEST(FreeSpaceMapTest, alloc_extent)
     // check that the freespace map contains the extents we expect
     {
         ExtentMap fsmap_expect;
-        fsmap_expect.insert(Extent(6, MAX_BLOCK-6));
+        fsmap_expect.insert(ExtentInterval(6, MAX_BLOCK-6));
         EXPECT_EQ_VERBOSE(fsmap_expect, fsmap);
     }
 
@@ -54,8 +54,8 @@ TEST(FreeSpaceMapTest, alloc_extent)
     // check that the freespace map contains the extents we expect
     {
         ExtentMap fsmap_expect;
-        fsmap_expect.insert(Extent(0, 1));
-        fsmap_expect.insert(Extent(6, MAX_BLOCK-6));
+        fsmap_expect.insert(ExtentInterval(0, 1));
+        fsmap_expect.insert(ExtentInterval(6, MAX_BLOCK-6));
         EXPECT_EQ_VERBOSE(fsmap_expect, fsmap);
     }
 
@@ -64,8 +64,8 @@ TEST(FreeSpaceMapTest, alloc_extent)
     // check that the freespace map contains the extents we expect
     {
         ExtentMap fsmap_expect;
-        fsmap_expect.insert(Extent(0, 1));
-        fsmap_expect.insert(Extent(10, MAX_BLOCK-10));
+        fsmap_expect.insert(ExtentInterval(0, 1));
+        fsmap_expect.insert(ExtentInterval(10, MAX_BLOCK-10));
         EXPECT_EQ_VERBOSE(fsmap_expect, fsmap);
     }
 
@@ -74,7 +74,7 @@ TEST(FreeSpaceMapTest, alloc_extent)
     // check that the freespace map contains the extents we expect
     {
         ExtentMap fsmap_expect;
-        fsmap_expect.insert(Extent(10, MAX_BLOCK-10));
+        fsmap_expect.insert(ExtentInterval(10, MAX_BLOCK-10));
         EXPECT_EQ_VERBOSE(fsmap_expect, fsmap);
     }
 
@@ -90,13 +90,13 @@ TEST(FreeSpaceMapTest, alloc_extent2)
 
     size_t LEN = 64;
 
-    fsmap.free_extent(Extent(0, LEN));
+    fsmap.free_extent(ExtentInterval(0, LEN));
 
-    Extent e1;
-    Extent e2;
-    Extent e3;
-    Extent e4;
-    Extent e5;
+    ExtentInterval e1;
+    ExtentInterval e2;
+    ExtentInterval e3;
+    ExtentInterval e4;
+    ExtentInterval e5;
 
     EXPECT_EQ(0, fsmap.alloc_extent(LEN-2, &e1));
     EXPECT_NE(0, fsmap.alloc_extent(3, &e2));

@@ -80,10 +80,6 @@ template <> struct add_reference<volatile void> { typedef void type; };
  *   a memory location that is mapped to a different region.
  */
 
-//#define null_ptr 0
-uintptr_t null_ptr = 0;
-
-
 /**
  * @brief Represents a transient pointer.
  * @ingroup SMARTPOINTERS
@@ -300,6 +296,7 @@ inline std::basic_ostream<E, T> & operator<<
     return os << p.get();   
 }
 
+const TPtr<void> null_ptr = 0;
 
 
 template<typename PointedType>

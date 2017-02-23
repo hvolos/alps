@@ -15,15 +15,21 @@
  */
 
 #include <fcntl.h>
+
+#include <cinttypes>
+
 #include "gtest/gtest.h"
 #include "alps/layers/pointer.hh"
 #include "alps/layers/extentheap.hh"
+
+#include "allochelper.hh"
 
 using namespace alps;
 
 typedef nvExtentHeap<TPtr, PPtr> nvExtentHeap_t;
 
 typedef ExtentHeap<TPtr, PPtr> ExtentHeap_t;
+typedef Extent<TPtr, PPtr> Extent_t;
 
 size_t region_size = 1024*1024;
 size_t block_log2size = 12; // 4KB
@@ -33,15 +39,89 @@ TEST(ExtentHeapTest, create)
     TPtr<void> region = malloc(region_size);
 
     ExtentHeap_t* exheap = ExtentHeap_t::make(region, region_size, block_log2size);
+    EXPECT_NE((void*) 0, exheap);
 }
 
-TEST(ExtentHeapTest, create_alloc_extent)
+TEST(ExtentHeapTest, alloc)
 {
     TPtr<void> region = malloc(region_size);
 
     ExtentHeap_t* exheap = ExtentHeap_t::make(region, region_size, block_log2size);
-    Extent ex;
-    exheap->alloc_extent(1, &ex);
+    Extent_t ex;
+    EXPECT_EQ(kErrorCodeOk, exheap->alloc_extent(10, &ex));
+}
+
+TEST(ExtentHeapTest, alloc_free)
+{
+    TPtr<void> region = malloc(region_size);
+
+    ExtentHeap_t* exheap = ExtentHeap_t::make(region, region_size, block_log2size);
+    Extent_t ex[16];
+    EXPECT_EQ(kErrorCodeOk, exheap->alloc_extent(10, &ex[0]));
+    EXPECT_EQ(kErrorCodeOk, exheap->alloc_extent(1, &ex[1]));
+    EXPECT_EQ(kErrorCodeOk, exheap->alloc_extent(14, &ex[2]));
+    for (int i = 0; i<3; i++) {
+        EXPECT_EQ(kErrorCodeOk, exheap->free_extent(ex[i]));
+    }
+}
+
+
+class ExtentHeapWrapper {
+public:
+
+    ExtentHeapWrapper(ExtentHeap_t* exheap)
+        : exheap_(exheap)
+    { }
+
+    TPtr<void> malloc(size_t size) 
+    {
+        Extent_t ex;
+        size_t nblocks = size / exheap_->blocksize();
+        exheap_->alloc_extent(nblocks, &ex);
+        return ex.nvextent();
+    }
+
+    void free(TPtr<void> ptr)
+    {
+        ErrorCode rc = exheap_->free_extent(ptr);
+        assert(kErrorCodeOk == rc);
+    }
+    
+private:
+    ExtentHeap_t* exheap_;
+
+};
+
+
+TEST(ExtentHeapTest, alloc_free_random)
+{
+    TPtr<void> region = malloc(region_size);
+
+    ExtentHeap_t* exheap = ExtentHeap_t::make(region, region_size, block_log2size);
+    ExtentHeapWrapper heap(exheap);
+
+    UniformDistribution block_dist(4096, 65536, 4096);
+
+    random_alloc_free(&heap, block_dist, 1, 8, 16, 128, 50, true, 0x1);
+}
+
+
+
+TEST(ExtentHeapTest, load)
+{
+    TPtr<void> region = malloc(region_size);
+
+    // create heap and do some allocations
+    ExtentHeap_t* exheap = ExtentHeap_t::make(region, region_size, block_log2size);
+    Extent_t ex;
+    EXPECT_EQ(kErrorCodeOk, exheap->alloc_extent(10, &ex));
+
+    // reload heap and do checks
+    ExtentHeap_t* exheapb = ExtentHeap_t::load(region);
+
+    Extent_t exb;
+    exheapb->extent(ex.interval(), &exb);
+    EXPECT_EQ(true, exb.nvheader()->is_free());
 }
 
 
