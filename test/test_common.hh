@@ -32,16 +32,13 @@
 #include "alps/layers/pointer.hh"
 
 #include "alps/common/assert_nd.hh"
+#include "alps/common/debug_options.hh"
 #include "alps/common/error_code.hh"
 #include "alps/common/error_stack.hh"
 #include "alps/common/externalizable.hh"
-//#include "alps/pegasus/pegasus.hh"
-//#include "alps/pegasus/pegasus_options.hh"
-//#include "alps/pegasus/relocatable_region.hh"
 
 #include "common/os.hh"
-//#include "pegasus/tmpfs_region_file.hh"
-//#include "pegasus/lfs_region_file.hh"
+#include "common/log.hh"
 
 namespace alps {
 
@@ -51,7 +48,7 @@ static TestEnvironment* global_test_env;
 
 struct TestOptions: public Externalizable {
     std::string kDefaultTestDir = "/dev/shm/nvm";
-    std::string kDefaultLogLevel = "";
+    std::string kDefaultLogLevel = "ERROR";
     size_t kBookSizeBytes = 0;
     std::string kConfigFile = "";
     bool kUseEnviron = false;
@@ -138,33 +135,15 @@ public:
 
     void SetUp() 
     {
+        DebugOptions debug_options;
+        debug_options.log_level = test_options_.log_level;
+        init_log(debug_options);
+
+
         if (do_cleanup_fs_) {
             cleanup_fs();
         }
-//        init_pegasus();
     }
-
-/*
-    void init_pegasus() 
-    {
-        // load configuration options from files
-        const char* config_file = NULL;
-        if (test_options_.config_file.size() > 0) {
-            config_file = test_options_.config_file.c_str();
-        }
-        COERCE_ERROR(Pegasus::load_options(config_file, test_options_.use_environ, test_options_.use_environ, &pegasus_options_));
-        // override any configuration files requested through test command options
-        if (test_options_.log_level.size() > 0) {
-            pegasus_options_.debug_options.log_level = test_options_.log_level;
-        }
-        if (test_options_.book_size_bytes != 0) {
-            pegasus_options_.tmpfs_options.book_size_bytes = test_options_.book_size_bytes;
-            pegasus_options_.lfs_options.book_size_bytes = test_options_.book_size_bytes;
-        }
-        Pegasus::init(pegasus_options_);
-
-    }
-*/
 
     void TearDown() { }
 
@@ -183,24 +162,7 @@ public:
     size_t booksize() 
     {
         assert(0 && "unimplemented");
-/*
-        std::string fstype = os_fstype(test_dir().c_str());
-        if (fstype == "tmpfs") {
-            return pegasus_options_.tmpfs_options.book_size_bytes;
-        }
-        if (fstype == "tmfs") {
-            return pegasus_options_.lfs_options.book_size_bytes;
-        }
-        assert(0 && "unknown file system"); 
-*/
     }
-
-/*
-    PegasusOptions pegasus_options() 
-    {
-        return pegasus_options_;
-    }
-*/
 
     void cleanup_fs() {
         std::string fstype = os_fstype(test_dir().c_str());
@@ -239,38 +201,8 @@ protected:
     std::vector<boost::filesystem::path> region_file_paths;
     const char**                         region_file_paths_c;
     TestOptions                          test_options_;
-//    PegasusOptions                       pegasus_options_;
     bool                                 do_cleanup_fs_;
 };
-
-/*
-class RegionFileTest : public ::testing::Test {
-protected:
-
-    std::string test_path(std::string name) {
-        return global_test_env->test_path(name);
-    }
-
-    void SetUp() 
-    {
-        __SetUp(true);
-    }
-
-    void __SetUp(bool cleanup) 
-    {
-        pegasus_options = global_test_env->pegasus_options();
-        if (cleanup) {
-            global_test_env->cleanup_fs();
-        }
-    }
-
-    size_t booksize() {
-	return global_test_env->booksize();
-    }
-
-    PegasusOptions pegasus_options;
-};
-*/
 
 template<typename EnvType>
 int init_test_env(int argc, char** argv)
@@ -284,7 +216,6 @@ int init_test_env(int argc, char** argv)
     return 0;
 }
 
-
 template<typename EnvType>
 int init_integration_test_env(int argc, char** argv)
 {
@@ -296,55 +227,6 @@ int init_integration_test_env(int argc, char** argv)
     global_test_env = env;
     return 0;
 }
-
-/*
-
-class RegionTest : public RegionFileTest {
-public:
-    void SetUp() 
-    {
-        __SetUp(true);
-    }
-
-    void __SetUp(bool cleanup) 
-    {
-        RegionFileTest::__SetUp(cleanup);
-        region_file_size = booksize();
-        EXPECT_EQ(kErrorCodeOk, Pegasus::create_region_file(test_path("region").c_str(), S_IRUSR | S_IWUSR, &region_file));
-        EXPECT_EQ(kErrorCodeOk, region_file->truncate(region_file_size));
-        EXPECT_EQ(kErrorCodeOk, region_file->close());
-        EXPECT_EQ(kErrorCodeOk, Pegasus::open_region_file(test_path("region").c_str(), O_RDWR, &region_file));
-        EXPECT_EQ(kErrorCodeOk, Pegasus::address_space()->map(region_file, &region));
-        last_alloc = 0;
-    }
-    
-    void TearDown() {
-        EXPECT_EQ(kErrorCodeOk, Pegasus::address_space()->unmap(region));
-        EXPECT_EQ(kErrorCodeOk, region_file->close());
-    }
-
-    RRegion::TPtr<void> alloc(size_t size)
-    {
-        RRegion::TPtr<void> ret = region->base<void>(last_alloc);
-        last_alloc += size;
-        return ret;
-    }
-
-    template<typename T>
-    RRegion::TPtr<T> base()
-    {
-        RRegion::TPtr<T> ret = region->base<T>(0);
-        return ret;
-    }
-
-    size_t      region_file_size;
-    RegionFile* region_file;
-    RRegion*    region;
-    void*       mapped_addr;
-    LinearAddr  last_alloc;
-};
-
-*/
 
 class AnonymousRegionTest: public ::testing::Test {
 public:

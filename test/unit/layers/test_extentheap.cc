@@ -23,6 +23,7 @@
 #include "alps/layers/extentheap.hh"
 
 #include "allochelper.hh"
+#include "test_common.hh"
 
 using namespace alps;
 
@@ -121,14 +122,14 @@ TEST(ExtentHeapTest, load)
 
     Extent_t exb;
     exheapb->extent(ex.interval(), &exb);
-    EXPECT_EQ(true, exb.nvheader()->is_free());
+    EXPECT_EQ(0, exb.nvheader()->is_free());
 }
 
 
 
 int main(int argc, char** argv)
 {
-    //::alps::init_test_env<::alps::TestEnvironment>(argc, argv);
+    ::alps::init_test_env<::alps::TestEnvironment>(argc, argv);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

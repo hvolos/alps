@@ -173,7 +173,7 @@ public:
         if (fsmap_.alloc_extent(size_nblocks, &exintv) == 0) {
             *ex = Extent<TPtr,PPtr>(this, exintv.start(), exintv.len());
             ex->mark_alloc();
-            //LOG(info) << "Allocated extent: " << ex << " " << (*nvex).get();
+            LOG(info) << "Allocated extent: " << ex;
             return kErrorCodeOk;
         }
         return kErrorCodeOutofmemory;
@@ -237,10 +237,9 @@ private:
     ErrorStack init()
     {
         typename nvExtentHeap<TPtr, PPtr>::Iterator it;
-        std::cout << "INIT" << std::endl;
         for (it = nvexheap_->begin(); it != nvexheap_->end(); ++it) {
             if (nvexheap_->is_free(*it)) {
-                std::cout << *it << std::endl;
+                LOG(info) << "Free extent: " << *it;
                 fsmap_.insert(*it);
             }
         }
