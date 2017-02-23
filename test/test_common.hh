@@ -29,17 +29,19 @@
 #include "boost/filesystem.hpp"
 #include "boost/filesystem/path.hpp"
 
+#include "alps/layers/pointer.hh"
+
 #include "alps/common/assert_nd.hh"
 #include "alps/common/error_code.hh"
 #include "alps/common/error_stack.hh"
 #include "alps/common/externalizable.hh"
-#include "alps/pegasus/pegasus.hh"
-#include "alps/pegasus/pegasus_options.hh"
-#include "alps/pegasus/relocatable_region.hh"
+//#include "alps/pegasus/pegasus.hh"
+//#include "alps/pegasus/pegasus_options.hh"
+//#include "alps/pegasus/relocatable_region.hh"
 
 #include "common/os.hh"
-#include "pegasus/tmpfs_region_file.hh"
-#include "pegasus/lfs_region_file.hh"
+//#include "pegasus/tmpfs_region_file.hh"
+//#include "pegasus/lfs_region_file.hh"
 
 namespace alps {
 
@@ -139,9 +141,10 @@ public:
         if (do_cleanup_fs_) {
             cleanup_fs();
         }
-        init_pegasus();
+//        init_pegasus();
     }
 
+/*
     void init_pegasus() 
     {
         // load configuration options from files
@@ -161,6 +164,7 @@ public:
         Pegasus::init(pegasus_options_);
 
     }
+*/
 
     void TearDown() { }
 
@@ -178,6 +182,8 @@ public:
 
     size_t booksize() 
     {
+        assert(0 && "unimplemented");
+/*
         std::string fstype = os_fstype(test_dir().c_str());
         if (fstype == "tmpfs") {
             return pegasus_options_.tmpfs_options.book_size_bytes;
@@ -186,12 +192,15 @@ public:
             return pegasus_options_.lfs_options.book_size_bytes;
         }
         assert(0 && "unknown file system"); 
+*/
     }
 
+/*
     PegasusOptions pegasus_options() 
     {
         return pegasus_options_;
     }
+*/
 
     void cleanup_fs() {
         std::string fstype = os_fstype(test_dir().c_str());
@@ -230,11 +239,11 @@ protected:
     std::vector<boost::filesystem::path> region_file_paths;
     const char**                         region_file_paths_c;
     TestOptions                          test_options_;
-    PegasusOptions                       pegasus_options_;
+//    PegasusOptions                       pegasus_options_;
     bool                                 do_cleanup_fs_;
 };
 
-
+/*
 class RegionFileTest : public ::testing::Test {
 protected:
 
@@ -261,7 +270,7 @@ protected:
 
     PegasusOptions pegasus_options;
 };
-
+*/
 
 template<typename EnvType>
 int init_test_env(int argc, char** argv)
@@ -288,6 +297,7 @@ int init_integration_test_env(int argc, char** argv)
     return 0;
 }
 
+/*
 
 class RegionTest : public RegionFileTest {
 public:
@@ -333,6 +343,18 @@ public:
     void*       mapped_addr;
     LinearAddr  last_alloc;
 };
+
+*/
+
+class AnonymousRegionTest: public ::testing::Test {
+public:
+    TPtr<void> alloc(size_t size)
+    {
+        void* ptr = malloc(size);
+        return ptr;
+    }
+};
+
 
 
 

@@ -20,21 +20,35 @@
 #include "gtest/gtest.h"
 #include "alps/common/assorted_func.hh"
 
-#include "globalheap/nvslab.hh"
-#include "globalheap/slab_heap.hh"
-#include "test_common.hh"
+#include "alps/layers/bits/slab.hh"
+#include "alps/layers/pointer.hh"
+#include "alps/layers/slabheap.hh"
 
 using namespace alps;
+
+typedef nvSlab<TPtr> nvSlab_t;
+
+typedef Slab<TPtr, PPtr> Slab_t;
+
+typedef SlabHeap<TPtr, PPtr> SlabHeap_ptr;
+
 
 // Test SlabHeap functionality with no extent heap and zone heap for 
 // allocating space for non-volatile slabs. Instead provide a method 
 // that mocks allocation of non-volatile slabs.
-class SlabHeapTest: public RegionTest {
+template<template<typename> class TPtr>
+class SlabHeapTestT: public ::testing::Test {
     const size_t slab_size = 256*1024;  
 public:
-    RRegion::TPtr<nvSlab> alloc_nvslab(int block_sizeclass, unsigned int perc_full) {
-        RRegion::TPtr<nvSlab> nvslab = alloc(slab_size);
-        nvSlab::make(nvslab, blocksize_class);
+    template<typename T>
+    TPtr<T> alloc(size_t size)
+    {
+        return (T*) malloc(size);
+    }
+
+    TPtr<nvSlab_t> alloc_nvslab(int block_sizeclass, unsigned int perc_full) {
+        TPtr<nvSlab_t> nvslab = alloc<nvSlab_t>(slab_size);
+        nvSlab_t::make(nvslab, block_sizeclass);
         for (size_t i=0, nalloc=0; i<nvslab->nblocks(); i++) {
             if (100*nalloc/nvslab->nblocks() < perc_full) {
                 nvslab->set_alloc(i);
@@ -45,23 +59,24 @@ public:
         }
         return nvslab;
     }
-
 };
+
+typedef SlabHeapTestT<TPtr> SlabHeapTest;
 
 TEST_F(SlabHeapTest, insert)
 {
-    SlabHeap slabheap(NULL);
+    SlabHeap_ptr slabheap;
 
-    Slab* slab0 = slabheap.insert_slab(alloc_nvslab(71, 0));
-    Slab* slab1 = slabheap.insert_slab(alloc_nvslab(71, 1));
-    Slab* slab2 = slabheap.insert_slab(alloc_nvslab(71, 50));
-    Slab* slab3 = slabheap.insert_slab(alloc_nvslab(71, 99));
+    Slab_t* slab0 = slabheap.insert_slab(alloc_nvslab(71, 0));
+    Slab_t* slab1 = slabheap.insert_slab(alloc_nvslab(71, 1));
+    Slab_t* slab2 = slabheap.insert_slab(alloc_nvslab(71, 50));
+    Slab_t* slab3 = slabheap.insert_slab(alloc_nvslab(71, 99));
 
     UNUSED_ND(slab0);
     UNUSED_ND(slab1);
     UNUSED_ND(slab2);
 
-    Slab* slab4 = slabheap.find_slab(71);
+    Slab_t* slab4 = slabheap.find_slab(71);
     
     EXPECT_EQ(slab3, slab4);
     
@@ -77,7 +92,7 @@ TEST_F(SlabHeapTest, insert)
 
 int main(int argc, char** argv)
 {
-    ::alps::init_test_env<::alps::TestEnvironment>(argc, argv);
+    //::alps::init_test_env<::alps::TestEnvironment>(argc, argv);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

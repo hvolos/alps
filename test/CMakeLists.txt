@@ -26,10 +26,10 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 add_definitions(${ARCH_DEFS})
 
 add_subdirectory(unit)
-add_subdirectory(integration)
+#add_subdirectory(integration)
 
 
-add_executable(test-util ${CMAKE_CURRENT_SOURCE_DIR}/util.cc)
-target_link_libraries(test-util pthread ${GTEST_LIBRARY} alps boost_program_options gtest)
+#add_executable(test-util ${CMAKE_CURRENT_SOURCE_DIR}/util.cc)
+#target_link_libraries(test-util pthread ${GTEST_LIBRARY} alps boost_program_options gtest)
 
-install (TARGETS test-util DESTINATION bin)
+#install (TARGETS test-util DESTINATION bin)
