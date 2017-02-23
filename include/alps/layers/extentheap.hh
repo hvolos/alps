@@ -26,7 +26,7 @@
 #include "alps/common/error_code.hh"
 #include "alps/common/error_stack.hh"
 #include "alps/globalheap/memattrib.hh"
-#include "alps/layers/bits/extent.hh"
+#include "alps/layers/bits/extentinterval.hh"
 #include "alps/layers/bits/freespacemap.hh"
 
 
@@ -180,7 +180,7 @@ public:
     }
 
 private:
-    size_t find_extent(size_t begin, size_t end, Extent* extent, bool* extent_is_free) 
+    size_t find_extent(size_t begin, size_t end, ExtentInterval* extent, bool* extent_is_free) 
     {
         size_t i;
         size_t ext_begin = begin;
@@ -205,7 +205,7 @@ private:
         }
 
         size_t ext_len = ext_end - ext_begin;
-        *extent = Extent(ext_begin, ext_len);
+        *extent = ExtentInterval(ext_begin, ext_len);
 
         return ext_begin;
     }
@@ -242,7 +242,7 @@ public:
             return !(*this == other);
         }
 
-        Extent operator*()
+        ExtentInterval operator*()
         {
             return cur_extent_;
         }
@@ -272,7 +272,7 @@ public:
         size_t                         end_;
         size_t                         cur_;
         size_t                         next_cur_;
-        Extent                         cur_extent_;
+        ExtentInterval                 cur_extent_;
     };
 
     Iterator begin() 
@@ -286,14 +286,21 @@ public:
     }
 
 //private:
-    // first cacheline (header takes two cachelines)
-    struct nvExtentHeapHeader  header_; 
-    // third cacheline
-    //PPtr<nvExtentHeader<TPtr> > extent_headers;
-    //PPtr<nvBlock>              blocks;
-    //char                       reserved[56];
-    // fourth cacheline
-    uint8_t                      payload_[0];
+    struct nvExtentHeapHeader header_; 
+    uint8_t                   payload_[0];
+};
+
+template<template<typename> class TPtr, template<typename> class PPtr>
+class ExtentHeap;
+
+
+template<template<typename> class TPtr, template<typename> class PPtr>
+class ExtentDesc {
+public:
+
+
+ExtentHeap<TPtr,PPtr>* exheap_;
+
 };
 
 
@@ -330,18 +337,31 @@ public:
     }
 #endif
 
-    ErrorCode alloc_extent(size_t size_nblocks, TPtr<nvExtentHeader<TPtr> >* nvexheader, TPtr<void>* nvex)
+    //TODO: decouple volatile from persistent allocation
+    //FIXME: return Extent as follows:
+    ErrorCode alloc_extent(size_t size_nblocks, ExtentInterval* extent)
+    //ErrorCode alloc_extent(size_t size_nblocks, TPtr<nvExtentHeader<TPtr> >* nvexheader, TPtr<void>* nvex)
     {
+        ExtentDesc<TPtr, PPtr> exd;
         Extent ex;
+        /*
         if (fsmap_.alloc_extent(size_nblocks, &ex) == 0) {
             *nvexheader = static_cast<TPtr<nvExtentHeader<TPtr>>>(nvexheap_->block_header(ex.start()));
             (*nvexheader)->mark_alloc(ex.len());
             TPtr<nvBlock> nvblock = nvexheap_->block(ex.start());
             *nvex = TPtr<void>(nvblock);
-            //LOG(info) << "Allocated zone_id: " << zone_id() << " extent: " << ex << " " << (*nvex).get();
+            //LOG(info) << "Allocated extent: " << ex << " " << (*nvex).get();
             return kErrorCodeOk;
         }
+        */
         return kErrorCodeOutofmemory;
+    }
+
+    //TODO: decouple volatile from persistent allocation
+    //TODO: implement Extent based interface
+    void free_extent(const Extent& extent)
+    {
+
     }
 
     void free_extent(TPtr<void> ptr)

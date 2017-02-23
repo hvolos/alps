@@ -22,15 +22,15 @@
 #include <map>
 
 #include "alps/common/error_code.hh"
-#include "alps/layers/bits/extent.hh"
+#include "alps/layers/bits/extentinterval.hh"
 
 #include "common/debug.hh"
 
 namespace alps {
 
-std::pair<ExtentMap::MapAddr::iterator, Extent*> ExtentMap::prev_addr(MapAddr::iterator hint, const Extent& e)
+std::pair<ExtentMap::MapAddr::iterator, ExtentInterval*> ExtentMap::prev_addr(MapAddr::iterator hint, const ExtentInterval& e)
 {
-    Extent* ex_prev = NULL;
+    ExtentInterval* ex_prev = NULL;
     MapAddr::iterator it_prev = hint;
 
     if (it_prev == map_addr_.begin()) {
@@ -49,18 +49,18 @@ std::pair<ExtentMap::MapAddr::iterator, Extent*> ExtentMap::prev_addr(MapAddr::i
             }
         }
     }
-    return std::pair<MapAddr::iterator, Extent*>(it_prev, ex_prev);
+    return std::pair<MapAddr::iterator, ExtentInterval*>(it_prev, ex_prev);
 }
 
-std::pair<ExtentMap::MapAddr::iterator, Extent*> ExtentMap::prev_addr(const Extent& e)
+std::pair<ExtentMap::MapAddr::iterator, ExtentInterval*> ExtentMap::prev_addr(const ExtentInterval& e)
 {
     MapAddr::iterator hint = map_addr_.lower_bound(e.start());
     return prev_addr(hint, e);
 }
 
-std::pair<ExtentMap::MapAddr::iterator, Extent*> ExtentMap::next_addr(MapAddr::iterator hint, const Extent& e)
+std::pair<ExtentMap::MapAddr::iterator, ExtentInterval*> ExtentMap::next_addr(MapAddr::iterator hint, const ExtentInterval& e)
 {
-    Extent* ex_next = NULL;
+    ExtentInterval* ex_next = NULL;
     MapAddr::iterator it_next = hint;
 
     if (it_next != map_addr_.end()) {
@@ -77,25 +77,25 @@ std::pair<ExtentMap::MapAddr::iterator, Extent*> ExtentMap::next_addr(MapAddr::i
     return std::make_pair(it_next, ex_next);
 }
 
-std::pair<ExtentMap::MapAddr::iterator, Extent*> ExtentMap::next_addr(const Extent& e)
+std::pair<ExtentMap::MapAddr::iterator, ExtentInterval*> ExtentMap::next_addr(const ExtentInterval& e)
 {
     MapAddr::iterator hint = map_addr_.lower_bound(e.start());
     return next_addr(hint, e);
 }
 
-void ExtentMap::insert(const Extent& e) 
+void ExtentMap::insert(const ExtentInterval& e) 
 {
     LOG(info) << "INSERT: " << e;
 
     MapAddr::iterator it_hint = map_addr_.lower_bound(e.start());
 
-    std::pair<MapAddr::iterator, Extent*> prev = prev_addr(it_hint, e);
+    std::pair<MapAddr::iterator, ExtentInterval*> prev = prev_addr(it_hint, e);
     MapAddr::iterator it_prev = prev.first;
-    Extent* ex_prev = prev.second;
+    ExtentInterval* ex_prev = prev.second;
 
-    std::pair<MapAddr::iterator, Extent*> next = next_addr(it_hint, e);
+    std::pair<MapAddr::iterator, ExtentInterval*> next = next_addr(it_hint, e);
     MapAddr::iterator it_next = next.first;
-    Extent* ex_next = next.second;
+    ExtentInterval* ex_next = next.second;
 
     if (ex_prev) {
         LOG(info) << "EX_PREV: " << *ex_prev;
@@ -169,7 +169,7 @@ void ExtentMap::insert(const Extent& e)
         }
     }
     if (!merged) {
-        Extent* ex = new Extent(e.start(), e.len());
+        ExtentInterval* ex = new ExtentInterval(e.start(), e.len());
         map_addr_.insert(MapAddrKeyVal(ex->start(), ex));
         map_len_.insert(MapLenKeyVal(MapLenKey(ex->len(), ex->start()), ex));
     }
@@ -177,7 +177,7 @@ void ExtentMap::insert(const Extent& e)
     assert(verify_maplen_equivalent_to_mapaddr() == true);
 }
 
-int ExtentMap::find_ge(size_t len, Extent* nex)
+int ExtentMap::find_ge(size_t len, ExtentInterval* nex)
 {
     if (len < 1) {
         return -1;
@@ -186,18 +186,18 @@ int ExtentMap::find_ge(size_t len, Extent* nex)
     if (it == map_len_.end()) {
         return -1;
     }
-    Extent* ex = it->second;
+    ExtentInterval* ex = it->second;
     *nex = *ex;
     return 0;
 }
 
-int ExtentMap::remove_ge(size_t len, Extent* nex)
+int ExtentMap::remove_ge(size_t len, ExtentInterval* nex)
 {
     MapLen::iterator it = map_len_.lower_bound(MapLenKey(len, 0));
     if (it == map_len_.end()) {
         return -1;
     }
-    Extent* ex = it->second;
+    ExtentInterval* ex = it->second;
 
     MapAddr::iterator ita = map_addr_.find(ex->start());
     assert(ita != map_addr_.end());
@@ -213,7 +213,7 @@ void ExtentMap::stream_to(std::ostream& os) const
     for (MapAddr::const_iterator it = map_addr_.begin(); 
          it != map_addr_.end(); it++) 
     {
-        Extent* ex = it->second;
+        ExtentInterval* ex = it->second;
         os << *ex << std::endl;
     }
 }
@@ -223,7 +223,7 @@ void ExtentMap::stream_to_orderbylen(std::ostream& os) const
     for (MapLen::const_iterator it = map_len_.begin(); 
          it != map_len_.end(); it++) 
     {
-        Extent* ex = it->second;
+        ExtentInterval* ex = it->second;
         os << *ex << std::endl;
     }
 }
@@ -238,8 +238,8 @@ bool ExtentMap::operator==(const ExtentMap& other)
          it != map_addr_.end() && it_other != other.map_addr_.end();
          it++, it_other++) 
     {
-        Extent* ex = it->second;
-        Extent* ex_other = it->second;
+        ExtentInterval* ex = it->second;
+        ExtentInterval* ex_other = it->second;
         if (*ex != *ex_other) {
             return false;
         }
@@ -258,7 +258,7 @@ bool ExtentMap::verify_maplen_equivalent_to_mapaddr()
     for (MapLen::const_iterator it = map_len_.begin(); 
          it != map_len_.end(); it++) 
     {
-        Extent* ex = it->second;
+        ExtentInterval* ex = it->second;
         MapAddr::const_iterator ita = map_addr_.find(ex->start());
         if (ita == map_addr_.end()) {
             return false;

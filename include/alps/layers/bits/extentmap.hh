@@ -23,28 +23,28 @@
 #include <iostream>
 #include <map>
 
-#include "alps/layers/bits/extent.hh"
+#include "alps/layers/bits/extentinterval.hh"
 
 namespace alps {
 
 class ExtentMap {
 public:
     typedef size_t MapAddrKey;
-    typedef Extent* MapAddrVal;
+    typedef ExtentInterval* MapAddrVal;
     typedef std::map<MapAddrKey, MapAddrVal> MapAddr;
     typedef std::pair<MapAddrKey, MapAddrVal> MapAddrKeyVal;
 
     // MapLenKey pair: <length, start address>
     typedef std::pair<size_t, size_t> MapLenKey; 
-    typedef Extent* MapLenVal;
+    typedef ExtentInterval* MapLenVal;
     typedef std::map<MapLenKey, MapLenVal> MapLen;
     typedef std::pair<MapLenKey, MapLenVal> MapLenKeyVal;
     
 public:
     /**
-     * @brief Insert an extent
+     * @brief Insert an extent inteval
      */
-    void insert(const Extent& extent);
+    void insert(const ExtentInterval& extentinterval);
 
     /** 
      * @brief Find an extent of at least length len (greater or equal to len) 
@@ -56,13 +56,13 @@ public:
      * brk limit as low as possible, which in turn helps minimizing the heap size.
      * Need to evaluate whether this policy is useful with a zoned-based persistent heap.
      */
-    int find_ge(size_t len, Extent* nex);
+    int find_ge(size_t len, ExtentInterval* nex);
 
     /** 
      * @brief Remove an extent of at least length len (greater or equal to len) 
      *        that has the lowest address
      */
-    int remove_ge(size_t len, Extent* nex);
+    int remove_ge(size_t len, ExtentInterval* nex);
 
     /**
      * @brief Returns the number of extents indexed by this ExtentMap
@@ -94,10 +94,10 @@ public:
     bool operator==(const ExtentMap& other);
 
 private:
-    std::pair<MapAddr::iterator, Extent*> prev_addr(MapAddr::iterator hint, const Extent& e);
-    std::pair<MapAddr::iterator, Extent*> prev_addr(const Extent& e);
-    std::pair<MapAddr::iterator, Extent*> next_addr(MapAddr::iterator hint, const Extent& e);
-    std::pair<MapAddr::iterator, Extent*> next_addr(const Extent& e);
+    std::pair<MapAddr::iterator, ExtentInterval*> prev_addr(MapAddr::iterator hint, const ExtentInterval& e);
+    std::pair<MapAddr::iterator, ExtentInterval*> prev_addr(const ExtentInterval& e);
+    std::pair<MapAddr::iterator, ExtentInterval*> next_addr(MapAddr::iterator hint, const ExtentInterval& e);
+    std::pair<MapAddr::iterator, ExtentInterval*> next_addr(const ExtentInterval& e);
 
     bool verify_maplen_equivalent_to_mapaddr();
 

@@ -28,9 +28,9 @@ using namespace alps;
 TEST(ExtentMap, insert_single)
 {
     ExtentMap map;
-    map.insert(Extent(10, 10));
+    map.insert(ExtentInterval(10, 10));
 
-    EXPECT_OUTPUT(map, Extent(10, 10) << std::endl);
+    EXPECT_OUTPUT(map, ExtentInterval(10, 10) << std::endl);
 }
 
 // Merge tests with two extents
@@ -38,41 +38,41 @@ TEST(ExtentMap, insert_single)
 TEST(ExtentMap, no_merge_lowest_with_next)
 {
     ExtentMap map;
-    map.insert(Extent(10, 10));
-    map.insert(Extent(0, 9));
+    map.insert(ExtentInterval(10, 10));
+    map.insert(ExtentInterval(0, 9));
 
     EXPECT_OUTPUT(map, 
-        Extent(0, 9) << std::endl <<
-        Extent(10, 10) << std::endl);
+        ExtentInterval(0, 9) << std::endl <<
+        ExtentInterval(10, 10) << std::endl);
 }
 
 TEST(ExtentMap, merge_lowest_with_next)
 {
     ExtentMap map;
-    map.insert(Extent(10, 10));
-    map.insert(Extent(0, 10));
+    map.insert(ExtentInterval(10, 10));
+    map.insert(ExtentInterval(0, 10));
 
-    EXPECT_OUTPUT(map, Extent(0, 20) << std::endl);
+    EXPECT_OUTPUT(map, ExtentInterval(0, 20) << std::endl);
 }
 
 TEST(ExtentMap, no_merge_highest_with_prev)
 {
     ExtentMap map;
-    map.insert(Extent(10, 10));
-    map.insert(Extent(21, 10));
+    map.insert(ExtentInterval(10, 10));
+    map.insert(ExtentInterval(21, 10));
 
     EXPECT_OUTPUT(map, 
-        Extent(10, 10) << std::endl <<
-        Extent(21, 10) << std::endl);
+        ExtentInterval(10, 10) << std::endl <<
+        ExtentInterval(21, 10) << std::endl);
 }
 
 TEST(ExtentMap, merge_highest_with_prev)
 {
     ExtentMap map;
-    map.insert(Extent(10, 10));
-    map.insert(Extent(20, 10));
+    map.insert(ExtentInterval(10, 10));
+    map.insert(ExtentInterval(20, 10));
 
-    EXPECT_OUTPUT(map, Extent(10, 20) << std::endl);
+    EXPECT_OUTPUT(map, ExtentInterval(10, 20) << std::endl);
 }
 
 // Merge tests with three extents
@@ -80,61 +80,61 @@ TEST(ExtentMap, merge_highest_with_prev)
 TEST(ExtentMap, merge_middle_with_prev)
 {
     ExtentMap map;
-    map.insert(Extent(10, 10));
-    map.insert(Extent(40, 10));
-    map.insert(Extent(20, 10));
+    map.insert(ExtentInterval(10, 10));
+    map.insert(ExtentInterval(40, 10));
+    map.insert(ExtentInterval(20, 10));
 
     EXPECT_OUTPUT(map, 
-        Extent(10, 20) << std::endl <<
-        Extent(40, 10) << std::endl);
+        ExtentInterval(10, 20) << std::endl <<
+        ExtentInterval(40, 10) << std::endl);
 }
 
 TEST(ExtentMap, no_merge_middle_with_prev)
 {
     ExtentMap map;
-    map.insert(Extent(10, 10));
-    map.insert(Extent(40, 10));
-    map.insert(Extent(21, 10));
+    map.insert(ExtentInterval(10, 10));
+    map.insert(ExtentInterval(40, 10));
+    map.insert(ExtentInterval(21, 10));
 
     EXPECT_OUTPUT(map, 
-        Extent(10, 10) << std::endl <<
-        Extent(21, 10) << std::endl <<
-        Extent(40, 10) << std::endl);
+        ExtentInterval(10, 10) << std::endl <<
+        ExtentInterval(21, 10) << std::endl <<
+        ExtentInterval(40, 10) << std::endl);
 }
 
 TEST(ExtentMap, merge_lowest_with_next_2)
 {
     ExtentMap map;
-    map.insert(Extent(10, 10));
-    map.insert(Extent(40, 10));
-    map.insert(Extent(0, 10));
+    map.insert(ExtentInterval(10, 10));
+    map.insert(ExtentInterval(40, 10));
+    map.insert(ExtentInterval(0, 10));
 
     EXPECT_OUTPUT(map, 
-        Extent(0, 20) << std::endl <<
-        Extent(40, 10) << std::endl);
+        ExtentInterval(0, 20) << std::endl <<
+        ExtentInterval(40, 10) << std::endl);
 }
 
 TEST(ExtentMap, merge_highest_with_prev_2)
 {
     ExtentMap map;
-    map.insert(Extent(10, 10));
-    map.insert(Extent(40, 10));
-    map.insert(Extent(50, 10));
+    map.insert(ExtentInterval(10, 10));
+    map.insert(ExtentInterval(40, 10));
+    map.insert(ExtentInterval(50, 10));
 
     EXPECT_OUTPUT(map, 
-        Extent(10, 10) << std::endl <<
-        Extent(40, 20) << std::endl);
+        ExtentInterval(10, 10) << std::endl <<
+        ExtentInterval(40, 20) << std::endl);
 }
 
 TEST(ExtentMap, merge_middle_with_prev_and_next)
 {
     ExtentMap map;
-    map.insert(Extent(10, 10));
-    map.insert(Extent(40, 10));
-    map.insert(Extent(20, 20));
+    map.insert(ExtentInterval(10, 10));
+    map.insert(ExtentInterval(40, 10));
+    map.insert(ExtentInterval(20, 20));
 
     EXPECT_OUTPUT(map, 
-        Extent(10, 40) << std::endl);
+        ExtentInterval(10, 40) << std::endl);
 }
 
 // Remove tests 
@@ -142,61 +142,61 @@ TEST(ExtentMap, merge_middle_with_prev_and_next)
 TEST(ExtentMap, remove_ge1)
 {
     ExtentMap map;
-    map.insert(Extent(0, 10));
-    map.insert(Extent(30, 10));
-    map.insert(Extent(10, 10));
-    map.insert(Extent(80, 10));
-    map.insert(Extent(40, 10));
+    map.insert(ExtentInterval(0, 10));
+    map.insert(ExtentInterval(30, 10));
+    map.insert(ExtentInterval(10, 10));
+    map.insert(ExtentInterval(80, 10));
+    map.insert(ExtentInterval(40, 10));
 
     EXPECT_OUTPUT(map, 
-        Extent(0, 20) << std::endl <<
-        Extent(30, 20) << std::endl << 
-        Extent(80, 10) << std::endl);
+        ExtentInterval(0, 20) << std::endl <<
+        ExtentInterval(30, 20) << std::endl << 
+        ExtentInterval(80, 10) << std::endl);
 
-    Extent e;
+    ExtentInterval e;
     EXPECT_EQ(0, map.remove_ge(10, &e));
-    EXPECT_EQ(Extent(80, 10), e);
+    EXPECT_EQ(ExtentInterval(80, 10), e);
     EXPECT_EQ(0, map.remove_ge(15, &e));
-    EXPECT_EQ(Extent(0, 20), e);
+    EXPECT_EQ(ExtentInterval(0, 20), e);
 }
 
 TEST(ExtentMap, remove_ge2)
 {
     ExtentMap map;
-    map.insert(Extent(0, 10));
-    map.insert(Extent(30, 10));
-    map.insert(Extent(50, 10));
-    map.insert(Extent(40, 10));
+    map.insert(ExtentInterval(0, 10));
+    map.insert(ExtentInterval(30, 10));
+    map.insert(ExtentInterval(50, 10));
+    map.insert(ExtentInterval(40, 10));
 
-    Extent e;
+    ExtentInterval e;
     EXPECT_EQ(0, map.remove_ge(30, &e));
-    EXPECT_EQ(Extent(30, 30), e);
+    EXPECT_EQ(ExtentInterval(30, 30), e);
     EXPECT_NE(0, map.remove_ge(30, &e));
     EXPECT_NE(0, map.remove_ge(11, &e));
     EXPECT_EQ(0, map.remove_ge(9, &e));
-    EXPECT_EQ(Extent(0, 10), e);
+    EXPECT_EQ(ExtentInterval(0, 10), e);
 }
 
 TEST(ExtentMap, remove_ge3)
 {
     ExtentMap map;
-    map.insert(Extent(30, 2));
-    map.insert(Extent(25, 3));
-    map.insert(Extent(0, 1));
+    map.insert(ExtentInterval(30, 2));
+    map.insert(ExtentInterval(25, 3));
+    map.insert(ExtentInterval(0, 1));
 
-    Extent e;
+    ExtentInterval e;
 
     EXPECT_EQ(0, map.find_ge(1, &e));
-    EXPECT_EQ(e, Extent(0, 1));
+    EXPECT_EQ(e, ExtentInterval(0, 1));
 
     // returns (30,2) because internally extentmap look ups in the 
     // order by length index and (30, 2) comes before (25, 3) in
     // that index
     EXPECT_EQ(0, map.find_ge(2, &e));
-    EXPECT_EQ(e, Extent(30, 2));
+    EXPECT_EQ(e, ExtentInterval(30, 2));
 
     EXPECT_EQ(0, map.find_ge(3, &e));
-    EXPECT_EQ(e, Extent(25, 3));
+    EXPECT_EQ(e, ExtentInterval(25, 3));
 }
 
 int main(int argc, char** argv)

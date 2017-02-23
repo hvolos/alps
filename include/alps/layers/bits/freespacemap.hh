@@ -26,7 +26,7 @@
 #include "common/debug.hh"
 
 
-#include "alps/layers/bits/extent.hh"
+#include "alps/layers/bits/extentinterval.hh"
 #include "alps/layers/bits/extentmap.hh"
 
 namespace alps {
@@ -36,25 +36,25 @@ class FreeSpaceMap: public ExtentMap {
 public:
     bool exists_extent(size_t size_nblocks)
     {
-        Extent ex;
+        ExtentInterval ex;
         return find_ge(size_nblocks, &ex) == 0 ? true : false;
     }
 
-    int alloc_extent(size_t size_nblocks, Extent* ex)
+    int alloc_extent(size_t size_nblocks, ExtentInterval* ex)
     {
         if (remove_ge(size_nblocks, ex) == 0) {
             // if returned size is larger than requested size then return the
             // rest of the space back to the extendmap
             if (ex->len() > size_nblocks) {
-                insert(Extent(ex->start() + size_nblocks, ex->len() - size_nblocks));
+                insert(ExtentInterval(ex->start() + size_nblocks, ex->len() - size_nblocks));
             }
-            *ex = Extent(ex->start(), size_nblocks);
+            *ex = ExtentInterval(ex->start(), size_nblocks);
             return 0;   
         }
         return -1;
     }
 
-    void free_extent(const Extent& ex)
+    void free_extent(const ExtentInterval& ex)
     {
         insert(ex);
     }

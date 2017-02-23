@@ -25,14 +25,26 @@ typedef nvExtentHeap<TPtr, PPtr> nvExtentHeap_t;
 
 typedef ExtentHeap<TPtr, PPtr> ExtentHeap_t;
 
+size_t region_size = 1024*1024;
+size_t block_log2size = 12; // 4KB
+
 TEST(ExtentHeapTest, create)
 {
-    size_t region_size = 1024*1024;
-    size_t block_log2size = 12; // 4KB
     TPtr<void> region = malloc(region_size);
 
     ExtentHeap_t* exheap = ExtentHeap_t::make(region, region_size, block_log2size);
 }
+
+TEST(ExtentHeapTest, create_alloc_extent)
+{
+    TPtr<void> region = malloc(region_size);
+
+    ExtentHeap_t* exheap = ExtentHeap_t::make(region, region_size, block_log2size);
+    Extent ex;
+    exheap->alloc_extent(1, &ex);
+}
+
+
 
 int main(int argc, char** argv)
 {

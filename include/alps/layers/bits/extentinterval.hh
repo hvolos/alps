@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _ALPS_LAYERS_BITS_EXTENT_HH_
-#define _ALPS_LAYERS_BITS_EXTENT_HH_
+#ifndef _ALPS_LAYERS_BITS_EXTENT_INTERVAL_HH_
+#define _ALPS_LAYERS_BITS_EXTENT_INTERVAL_HH_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -24,16 +24,14 @@
 
 namespace alps {
 
-//TODO: extend extent to include pointer to underlying nvextent, and report state: free, alloc
-
-struct Extent {
+struct ExtentInterval {
 public:
-    Extent(size_t start, size_t len)
+    ExtentInterval(size_t start, size_t len)
         : start_(start), 
           len_(len)
     { }
 
-    Extent()
+    ExtentInterval()
         : start_(0),
           len_(0)
     { }
@@ -42,15 +40,15 @@ public:
     size_t len() const { return len_; }
     size_t end() const { return start_ + len_; }
 
-    void merge(const Extent* ex);
-    bool overlaps(const Extent* ex) const;
+    void merge(const ExtentInterval* ex);
+    bool overlaps(const ExtentInterval* ex) const;
 
-    bool operator==(const Extent& other) const
+    bool operator==(const ExtentInterval& other) const
     {
         return start_ == other.start_ && len_ == other.len_;
     }
 
-    bool operator!=(const Extent& other) const
+    bool operator!=(const ExtentInterval& other) const
     {
         return !(*this == other);
     }
@@ -70,7 +68,7 @@ private:
     size_t len_;
 };
 
-inline void Extent::merge(const Extent* ex) {
+inline void ExtentInterval::merge(const ExtentInterval* ex) {
     if (start() <= ex->start() && ex->start() <= end()) {
         if (end() <= ex->end()) {
             // CASE: partially overlap with prev
@@ -95,7 +93,7 @@ inline void Extent::merge(const Extent* ex) {
     } 
 }
 
-inline bool Extent::overlaps(const Extent* ex) const {
+inline bool ExtentInterval::overlaps(const ExtentInterval* ex) const {
     if (start() <= ex->start() && ex->start() <= end()) {
         // [------)
         //    [--------)
@@ -115,7 +113,7 @@ inline bool Extent::overlaps(const Extent* ex) const {
 }
 
 
-inline std::ostream& operator<<(std::ostream& os, const Extent& ex)
+inline std::ostream& operator<<(std::ostream& os, const ExtentInterval& ex)
 {
     ex.stream_to(os);
     return os;
@@ -124,4 +122,4 @@ inline std::ostream& operator<<(std::ostream& os, const Extent& ex)
 
 } // namespace alps
 
-#endif // _ALPS_LAYERS_BITS_EXTENT_HH_
+#endif // _ALPS_LAYERS_BITS_EXTENT_INTERVAL_HH_
