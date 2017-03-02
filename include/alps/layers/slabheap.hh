@@ -101,6 +101,30 @@ public:
         }
     }
 
+    void free(TPtr<void> ptr) 
+    {
+        Extent<TPtr,PPtr> ex;
+        ErrorCode rc = extentheap_->extent(ptr, &ex);
+        ASSERT_ND(rc == kErrorCodeOk);
+
+        SlabT* slab = SlabT::load(ex.nvextent());
+
+        // Expect this to finish after a few iterations as a slab that is 
+        // moved between two slab heaps eventually ends up in a slabheap
+        for (;;) {
+            SlabHeap* owner = slab->owner();
+            if (owner) {
+                owner->lock();
+                if (owner == slab->owner()) {
+                    owner->free_block(slab, ptr);
+                    owner->unlock();
+                    break;
+                }
+                owner->unlock();
+            }
+        }
+    }
+
 
     TPtr<void> alloc_block(SlabT* slab)
     {

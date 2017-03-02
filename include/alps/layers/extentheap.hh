@@ -141,13 +141,6 @@ public:
         return 1 << nvexheap_->header_.block_log2size_;
     }
 
-#if 0
-    bool has_free_space(size_t size_nblocks)
-    {
-        return fsmap_.exists_extent(size_nblocks);
-    }
-#endif
-
     ErrorCode extent(ExtentInterval interval, Extent<TPtr,PPtr>* ex)
     {
         *ex = Extent<TPtr,PPtr>(this, interval.start(), interval.len());
