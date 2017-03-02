@@ -107,8 +107,6 @@ inline std::ostream& operator<<(std::ostream& os, const Extent<TPtr,PPtr>& ex)
     return os;
 }
 
-//template<template<typename> class TPtr, template<typename> class PPtr>
-
 
 /**
  * @brief Manages a heap of extents
@@ -199,43 +197,30 @@ public:
         return free_extent(ex);
     }
 
-    //acquire(TPtr<void> ptr)
-
-    ErrorCode malloc(size_t size_bytes, TPtr<void>* nvex)
+    ErrorCode malloc(size_t size_bytes, TPtr<void>* ptr)
     {
-#if 0
         ErrorCode rc;
-        Zone*     zone;
-
-        LOG(info) << "size_bytes == " << size_bytes;
+        Extent<TPtr,PPtr> ex;
 
         pthread_mutex_lock(&mutex_);
 
         // round up to next multiple of block_size
-        size_t size_nblocks = size_bytes / nvZone::block_size() + (size_bytes % nvZone::block_size() ? 1: 0);
+        size_t size_nblocks = size_bytes / blocksize() + (size_bytes % blocksize() ? 1: 0);
 
-        rc = alloc_extent(size_nblocks, nvexheader, nvex);
+        rc = alloc_extent(size_nblocks, ex);
+        if (rc == kErrorCodeOk) {
+            *ptr = ex->nvextent();
+        }
+
         pthread_mutex_unlock(&mutex_);
         return rc;
-#endif
     }
 
-    void free(TPtr<void> nvex)
+    void free(TPtr<void> ptr)
     {
-#if 0
         pthread_mutex_lock(&mutex_);
-
-        // find the extent's zone
-        size_t metazone_size = nvheap_->metazone_size();
-        size_t zone_id = (nvex.offset() & ~(metazone_size - 1)) / metazone_size;
-        Zone* zone = acquire_zone(zone_id, callback);
-        if (zone) {
-            zone->free_extent(nvex);
-        } else {
-            LOG(error) << "Attempt to free unknown address: " << nvex << std::endl;
-        }
+        ErrorCode rc = free_extent(ptr);
         pthread_mutex_unlock(&mutex_);
-#endif
     }
 
 public:
@@ -300,22 +285,6 @@ private:
         return kRetOk;
     }
 
-#if 0
-    template<typename T> ErrorCode malloc(size_t size, bool can_extend, T enumerate_callback, RRegion::TPtr<nvExtentHeader>* nvexheader, RRegion::TPtr<void>* nvex);
-    RRegion::TPtr<void> malloc(size_t size);
-    void free(Zone* zone, RRegion::TPtr<void> nvex);
-    void free(RRegion::TPtr<void> nvex);
-    template<typename T> void free(RRegion::TPtr<void> nvex, T enumerate_callback);
-
-    template<typename T> Zone* acquire_zone(size_t zone_id, T enumerate_callback_functor);
-
-    /**
-     * @brief Acquire nzones zones and invoke functor callback for each zone acquired.
-     * 
-     */ 
-    template<typename T> int more_space(int nzones, T callback);
-#endif
-    
 private:
     pthread_mutex_t                mutex_;
     TPtr<nvExtentHeap<TPtr, PPtr>> nvexheap_;

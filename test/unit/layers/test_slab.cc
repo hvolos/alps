@@ -52,6 +52,7 @@ public:
 
 typedef SlabTestT<TPtr> SlabTest;
 
+const size_t slab_size = 256*1024;
 
 TEST_F(SlabTest, nvslab)
 {
@@ -61,13 +62,13 @@ TEST_F(SlabTest, nvslab)
     int szcl_32K = sizeclass(32*1024);   
     int szcl_1K = sizeclass(1024);   
 
-    nvSlab_t::make(nvslab, szcl_128K);
+    nvSlab_t::make(nvslab, slab_size, szcl_128K);
     EXPECT_EQ(1U, nvslab->nblocks());
     EXPECT_EQ(1U, nvslab->block_id(nvslab->block(1)));
     EXPECT_EQ(nvslab->nblocks()-1, nvslab->block_id(nvslab->block(nvslab->nblocks()-1)));
     EXPECT_EQ(0U, nvslab->header.size() % kCacheLineSize);
  
-    nvSlab_t::make(nvslab, szcl_32K);
+    nvSlab_t::make(nvslab, slab_size, szcl_32K);
     EXPECT_EQ(7U, nvslab->nblocks());
     for (size_t i = 0; i<nvslab->nblocks(); i++) {
         EXPECT_EQ(i, nvslab->block_id(nvslab->block(i)));
@@ -82,11 +83,11 @@ TEST_F(SlabTest, nvslab)
     EXPECT_EQ(nvslab->nblocks()-1, nvslab->block_id(nvslab->block(nvslab->nblocks()-1)));
     EXPECT_EQ(0U, nvslab->header.size() % kCacheLineSize);
     
-    nvSlab_t::make(nvslab, szcl_1K);
+    nvSlab_t::make(nvslab, slab_size, szcl_1K);
     EXPECT_EQ(1U, nvslab->block_id(nvslab->block(1)));
     EXPECT_EQ(nvslab->nblocks()-1, nvslab->block_id(nvslab->block(nvslab->nblocks()-1)));
     
-    nvSlab_t::make(nvslab, 0);
+    nvSlab_t::make(nvslab, slab_size, 0);
     EXPECT_EQ(1U, nvslab->block_id(nvslab->block(1)));
     EXPECT_EQ(nvslab->nblocks()-1, nvslab->block_id(nvslab->block(nvslab->nblocks()-1)));
 }
@@ -101,7 +102,7 @@ TEST_F(SlabTest, nvslab_alloc_block_130)
     int szcl = sizeclass(130);   
     int blksz = size_from_class(szcl);
 
-    nvSlab_t::make(nvslab, szcl);
+    nvSlab_t::make(nvslab, slab_size, szcl);
 
     // allocate block 0 and write pattern
     TPtr<void> blk0 = nvslab->block(0);
@@ -125,7 +126,7 @@ TEST_F(SlabTest, nvslab_alloc_block_1K)
 
     int szcl = sizeclass(1024);   
 
-    nvSlab_t::make(nvslab, szcl);
+    nvSlab_t::make(nvslab, slab_size, szcl);
 
     EXPECT_EQ(1, nvslab->is_free(0)); 
     nvslab->set_alloc(0);
@@ -137,23 +138,20 @@ TEST_F(SlabTest, nvslab_alloc_block_1K)
     EXPECT_EQ(0, nvslab->is_free(1)); 
 }
 
-
-
-
 TEST_F(SlabTest, slab_load)
 {
     TPtr<nvSlab_t> nvslab = alloc<nvSlab_t>(256*1024);
 
     int szcl_1K = sizeclass(1024);   
 
-    nvSlab_t::make(nvslab, szcl_1K);
+    nvSlab_t::make(nvslab, slab_size, szcl_1K);
 
     nvslab->set_alloc(0);
     nvslab->set_alloc(1);
     nvslab->set_alloc(3);
 
-    Slab_t slab(nvslab);
-    EXPECT_EQ(slab.nblocks() - 3, slab.nblocks_free());
+    Slab_t* slab= Slab_t::load(nvslab);
+    EXPECT_EQ(slab->nblocks() - 3, slab->nblocks_free());
 }
 
 TEST_F(SlabTest, slab_alloc_block)
@@ -162,16 +160,18 @@ TEST_F(SlabTest, slab_alloc_block)
 
     int szcl_1K = sizeclass(1024);   
 
-    nvSlab_t::make(nvslab, szcl_1K);
+    nvSlab_t::make(nvslab, slab_size, szcl_1K);
 
-    Slab_t slab(nvslab);
-    slab.alloc_block();
-    slab.alloc_block();
-    slab.alloc_block();
-    EXPECT_EQ(slab.nblocks() - 3, slab.nblocks_free());
+    Slab_t* slab = Slab_t::load(nvslab);
+    slab->alloc_block();
+    slab->alloc_block();
+    slab->alloc_block();
+    EXPECT_EQ(slab->nblocks() - 3, slab->nblocks_free());
 
-    Slab_t shadow_slab(nvslab);
-    EXPECT_EQ(slab.nblocks_free(), shadow_slab.nblocks_free());
+    Slab_t* shadow_slab = Slab_t::load(nvslab);
+    EXPECT_EQ(slab->nblocks_free(), shadow_slab->nblocks_free());
+    delete slab;
+    delete shadow_slab;
 }
 
 

@@ -30,7 +30,7 @@ typedef nvSlab<TPtr> nvSlab_t;
 
 typedef Slab<TPtr, PPtr> Slab_t;
 
-typedef SlabHeap<TPtr, PPtr> SlabHeap_ptr;
+typedef SlabHeap<TPtr, PPtr> SlabHeap_t;
 
 
 // Test SlabHeap functionality with no extent heap and zone heap for 
@@ -48,7 +48,7 @@ public:
 
     TPtr<nvSlab_t> alloc_nvslab(int block_sizeclass, unsigned int perc_full) {
         TPtr<nvSlab_t> nvslab = alloc<nvSlab_t>(slab_size);
-        nvSlab_t::make(nvslab, block_sizeclass);
+        nvSlab_t::make(nvslab, slab_size, block_sizeclass);
         for (size_t i=0, nalloc=0; i<nvslab->nblocks(); i++) {
             if (100*nalloc/nvslab->nblocks() < perc_full) {
                 nvslab->set_alloc(i);
@@ -65,7 +65,7 @@ typedef SlabHeapTestT<TPtr> SlabHeapTest;
 
 TEST_F(SlabHeapTest, insert)
 {
-    SlabHeap_ptr slabheap;
+    SlabHeap_t slabheap;
 
     Slab_t* slab0 = slabheap.insert_slab(alloc_nvslab(71, 0));
     Slab_t* slab1 = slabheap.insert_slab(alloc_nvslab(71, 1));

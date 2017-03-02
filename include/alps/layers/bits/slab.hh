@@ -34,8 +34,6 @@
 
 namespace alps {
 
-static size_t slab_size = 256*1024LLU;
-
 /**
  * @brief Variable-size slab header
  */
@@ -53,12 +51,12 @@ struct nvSlabHeader {
         return sizeof(header_size) + sizeof(sizeclass) + sizeof(nblocks) + sizeof(void*);
     }
 
-    static TPtr<nvSlabHeader> make(TPtr<nvSlabHeader> header, size_t slab_size, int sizeclass)
+    static TPtr<nvSlabHeader> make(TPtr<nvSlabHeader> header, size_t slab_size, int size_class)
     {
-        size_t block_size = size_from_class(sizeclass);
+        size_t block_size = size_from_class(size_class);
         size_t nblocks = max_nblocks(slab_size, block_size);
         size_t header_sz = size_of() + nvBitMap::size_of(nblocks);
-        header->sizeclass = sizeclass;
+        header->sizeclass = size_class;
         header->header_size = align<size_t, kCacheLineSize>(header_sz);
         // Adjust (reduce) number of blocks to accomodate extra space needed 
         // for roundup
@@ -95,9 +93,10 @@ struct nvSlab
 {
     nvSlabHeader<TPtr> header;    // Variable-size header
 
-    static TPtr<nvSlab> make(TPtr<nvSlab> nvslab, int sizeclass)
+    static TPtr<nvSlab> make(TPtr<void> region, size_t slab_size, int size_class)
     {
-        nvSlabHeader<TPtr>::make(&nvslab->header, slab_size, sizeclass);
+        TPtr<nvSlab> nvslab = region;
+        nvSlabHeader<TPtr>::make(&nvslab->header, slab_size, size_class);
         assert(nvslab->block_offset(nvslab->nblocks()) <= slab_size);
         return nvslab;
     }
@@ -176,17 +175,31 @@ public:
     typedef std::list<Slab*> SlabList;
 
 public:
+    static Slab* make(TPtr<void> region, size_t slab_size, size_t size_class)
+    {
+        TPtr<nvSlab<TPtr>> nvslab = nvSlab<TPtr>::make(region, slab_size, size_class);
+        Slab* slab = new Slab(nvslab);
+        slab->init();
+        return slab;
+    }
+
+    static Slab* load(TPtr<void> region)
+    {
+        TPtr<nvSlab<TPtr>> nvslab = region;
+        Slab* slab = new Slab(nvslab);
+        slab->init();
+        return slab;
+    }
+
     Slab(TPtr<nvSlab<TPtr>> nvslab)
         : nvslab_(nvslab),
           slab_list_(NULL)
     { 
-        init();
         nvslab->set_slab(this);
     }
 
     void init()
     {   
-        pthread_mutex_init(&pin_mutex_, NULL);
         if (block_size()) {
             free_list_.clear();
             for (size_t i=0; i<nblocks(); i++) {
@@ -197,9 +210,9 @@ public:
         }
     }
 
-    void init(int sizeclass)
-    {
-        nvSlab<TPtr>::make(nvslab_, sizeclass);
+    void reset(size_t slab_size, int szclass)
+    {   
+        nvSlab<TPtr>::make(nvslab_, slab_size, szclass);
         init();
     }
 
@@ -307,12 +320,11 @@ public:
     }
 
 
-    pthread_mutex_t        pin_mutex_;
-    std::atomic<void*>     owner_;
-    std::list<size_t>      free_list_;
-    TPtr<nvSlab<TPtr>>     nvslab_;
-    SlabList*              slab_list_; // list this slab belongs to
-    typename SlabList::iterator     slab_list_it_; // position in the slab list
+    std::atomic<void*>           owner_;
+    std::list<size_t>            free_list_;
+    TPtr<nvSlab<TPtr>>           nvslab_;
+    SlabList*                    slab_list_; // list this slab belongs to
+    typename SlabList::iterator  slab_list_it_; // position in the slab list
 };
 
 } // namespace alps

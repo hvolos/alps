@@ -19,9 +19,13 @@
 
 #include "alps/common/assert_nd.hh"
 
+#include "alps/layers/extentheap.hh"
+
 #include "alps/layers/bits/slab.hh"
 
 namespace alps {
+
+static size_t slab_size = 256*1024LLU;
 
 /**
  * @brief Slab heap organizes slabs in per-sizeclass free lists 
@@ -36,19 +40,67 @@ class SlabHeap
 {
 public:
     typedef Slab<TPtr, PPtr> SlabT;
+    typedef ExtentHeap<TPtr, PPtr> ExtentHeapT;
+
 public:
     SlabHeap()
     { 
         ASSERT_ND(pthread_mutex_init(&mutex_, NULL) == 0);
     }
 
-#if 0
-    //malloc();
-    ErrorCode malloc(size_t size_bytes, TPtr<void>* ptr);
-    //free();
-    //get();
-    //put();
-#endif
+    SlabHeap(SlabHeap* parentslabheap, ExtentHeapT* extentheap)
+        : parentslabheap_(parentslabheap),
+          extentheap_(extentheap)
+    {
+
+    }
+
+    ErrorCode init()
+    {
+        if (extentheap_) {
+            for (typename ExtentHeapT::Iterator it = extentheap_->begin(); 
+                 it != extentheap_->end(); ++it) 
+            {
+                if ((*it).nvheader()->is_free() && (*it).nvheader()->size() == slab_size) 
+                {
+                    SlabT* slab = insert_slab(it->nvextent());
+                    if (!slab) {
+                        return kErrorCodeOutofmemory;    
+                    }
+                }
+            }
+        }
+    }
+
+    ErrorCode malloc(size_t size_bytes, TPtr<void>* ptr)
+    {
+        const int szclass = sizeclass(size_bytes);
+        SlabT* slab = find_slab(szclass);
+
+        // No slab in this heap so try to get a slab from the parent slab 
+        // heap if we have one
+        if (!slab && parentslabheap_) {
+            slab = parentslabheap_->acquire_slab(szclass);
+            if (slab) {
+                insert_slab(slab, szclass);
+            }
+        }
+ 
+        // No slab in parent heap so try to get a new chunk from the extent 
+        // heap if we have one
+        if (!slab && extentheap_) {
+            TPtr<void> region;
+            if (extentheap_->malloc(slab_size, &region) == kErrorCodeOk) {
+                SlabT* slab = SlabT::make(region, slab_size, szclass);
+                return slab;
+            }
+        }
+            
+        if (slab) {
+            ptr = alloc_block(slab);
+        }
+    }
+
 
     TPtr<void> alloc_block(SlabT* slab)
     {
@@ -84,6 +136,25 @@ public:
         }
     }
 
+    SlabT* acquire_slab(int szclass)
+    {
+        SlabT* slab;
+
+        slab = find_slab(szclass);
+        if (slab) {
+            remove_slab(slab);
+            return slab;
+        }
+
+        if (extentheap_) {
+            TPtr<void> region;
+            if (extentheap_->malloc(slab_size, &region) == kErrorCodeOk) {
+                SlabT* slab = SlabT::make(region, slab_size, szclass);
+                return slab;
+            }
+        }
+    }
+
     SlabT* find_slab(const int szclass)
     {
         SlabT* slab = NULL;
@@ -91,7 +162,7 @@ public:
         // Skip kSlabFullnessBins-1 slab list as it contains completely full slabs
         int fullness_hint = kSlabFullnessBins-2;
 
-        // Find the most-full slab 
+        // Find the most full slab 
         for (int i=fullness_hint; i>=0; i--) {
             typename SlabT::SlabList& sl = full_slabs_[szclass][i];
             if (sl.size()) {
@@ -110,7 +181,7 @@ public:
     {
         LOG(info) << "Insert slab: " << nvslab;
 
-        SlabT* slab = new SlabT(nvslab);
+        SlabT* slab = SlabT::load(nvslab);
         insert_slab(slab, nvslab->sizeclass());
         return slab;
     }
@@ -203,7 +274,7 @@ private:
             int fullness = slab->fullness();
             move_slab(slab, szclass, fullness);
             if (slab->sizeclass() != szclass) {
-                slab->init(szclass);
+                slab->reset(slab_size, szclass);
             }
         }
         return slab;
@@ -211,9 +282,15 @@ private:
 
 
 protected:
+    SlabHeap*                parentslabheap_;
+    ExtentHeapT*             extentheap_;
     pthread_mutex_t          mutex_;
-    typename SlabT::SlabList full_slabs_[kSizeClasses][kSlabFullnessBins]; // completely or partially full slabs
-    typename SlabT::SlabList empty_slabs_; // completely empty slabs (that can be reused as a different size class)
+    
+    //! completely or partially full slabs
+    typename SlabT::SlabList full_slabs_[kSizeClasses][kSlabFullnessBins]; 
+
+    //! completely empty slabs (that can be reused as a different size class)
+    typename SlabT::SlabList empty_slabs_; 
 };
 
 } // namespace alps
