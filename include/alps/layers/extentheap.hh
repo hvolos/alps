@@ -67,6 +67,11 @@ public:
         return nvextent_;
     }
 
+    bool operator==(const Extent<TPtr, PPtr> &other) const 
+    {  
+        return interval_ == other.interval_;  
+    }
+
     void stream_to(std::ostream& os) const 
     {
         os << interval_;
@@ -89,7 +94,7 @@ private:
     {
         nvextentheader_->mark_free();
     }
-
+    
     ExtentHeap<TPtr,PPtr>*     exheap_;
     ExtentInterval             interval_;
     TPtr<nvExtentHeader<TPtr>> nvextentheader_;
@@ -102,6 +107,7 @@ inline std::ostream& operator<<(std::ostream& os, const Extent<TPtr,PPtr>& ex)
     return os;
 }
 
+//template<template<typename> class TPtr, template<typename> class PPtr>
 
 
 /**
@@ -232,6 +238,54 @@ public:
 #endif
     }
 
+public:
+    class Iterator {
+    public:
+        Iterator()
+        { }
+
+        Iterator(ExtentHeap<TPtr, PPtr>* exheap, typename nvExtentHeap<TPtr, PPtr>::Iterator nvit)
+            : exheap_(exheap),
+                //nvexheap_(exheap->nvexheap_),
+              nvit_(nvit)
+        { }
+
+        Iterator& operator++()
+        {
+            ++nvit_;
+            return *this;
+        }  
+
+        Extent<TPtr,PPtr> operator*()
+        {
+            ExtentInterval interval = *nvit_;
+            return Extent<TPtr,PPtr>(exheap_, interval.start(), interval.len());
+        }
+
+        bool operator==(const Iterator& other) 
+        {
+            return nvit_ == other.nvit_;
+        }
+
+        bool operator!=(const Iterator& other) 
+        {
+            return nvit_ != other.nvit_;
+        }
+
+        ExtentHeap<TPtr, PPtr>* exheap_;
+        typename nvExtentHeap<TPtr,PPtr>::Iterator nvit_;
+    };
+
+    Iterator begin()
+    {
+        return Iterator(this, nvexheap_->begin());
+    }
+
+    Iterator end()
+    {
+        return Iterator(this, nvexheap_->end());
+    }
+
 private:
 
     ErrorStack init()
@@ -239,7 +293,7 @@ private:
         typename nvExtentHeap<TPtr, PPtr>::Iterator it;
         for (it = nvexheap_->begin(); it != nvexheap_->end(); ++it) {
             if (nvexheap_->is_free(*it)) {
-                LOG(info) << "Free extent: " << *it;
+                LOG(info) << "Load free extent: " << *it;
                 fsmap_.insert(*it);
             }
         }
@@ -262,17 +316,6 @@ private:
     template<typename T> int more_space(int nzones, T callback);
 #endif
     
-private:
-    /**
-     * @brief Allocate an extent from zones already owned by this extent heap.
-     * 
-     * @param[in] size_nblocks size of extent in number of blocks
-     * @param[in] zone_hint hint to a zone that might have free space
-     * @param[out] nvex a pointer to the extent 
-     * @param[out] zone the zone we allocated extent from
-     */
-//    ErrorCode alloc_extent(size_t size_nblocks, Zone* zone_hint, RRegion::TPtr<nvExtentHeader>* nvexheader, RRegion::TPtr<void>* nvex, Zone** pzone);
-
 private:
     pthread_mutex_t                mutex_;
     TPtr<nvExtentHeap<TPtr, PPtr>> nvexheap_;

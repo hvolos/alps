@@ -66,6 +66,34 @@ TEST(ExtentHeapTest, alloc_free)
     }
 }
 
+TEST(ExtentHeapTest, iterator)
+{
+    TPtr<void> region = malloc(region_size);
+
+    ExtentHeap_t* exheap = ExtentHeap_t::make(region, region_size, block_log2size);
+    Extent_t ex[8];
+    EXPECT_EQ(kErrorCodeOk, exheap->alloc_extent(10, &ex[0]));
+    EXPECT_EQ(kErrorCodeOk, exheap->alloc_extent(3, &ex[1]));
+    EXPECT_EQ(kErrorCodeOk, exheap->alloc_extent(14, &ex[2]));
+
+    EXPECT_EQ(kErrorCodeOk, exheap->free_extent(ex[1]));
+    EXPECT_EQ(kErrorCodeOk, exheap->alloc_extent(228, &ex[1]));
+    EXPECT_EQ(kErrorCodeOk, exheap->alloc_extent(1, &ex[4]));
+
+    ExtentHeap_t::Iterator it;
+    for (it = exheap->begin(); it != exheap->end(); ++it) {
+        if (!(*it).nvheader()->is_free()) {
+            bool found = false;
+            for (int i=0; i<8; i++) {
+                if (ex[i] == (*it)) {
+                    found = true;
+                    break;
+                }
+            }
+            EXPECT_EQ(true, found);
+        }
+    }
+}
 
 class ExtentHeapWrapper {
 public:
