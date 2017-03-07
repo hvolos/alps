@@ -35,12 +35,12 @@ static size_t slab_size = 256*1024LLU;
  * serialization via lock/unlock.
  * 
  */
-template<template<typename> class TPtr, template<typename> class PPtr>
+template<typename Context, template<typename> class TPtr, template<typename> class PPtr>
 class SlabHeap
 {
 public:
-    typedef Slab<TPtr, PPtr> SlabT;
-    typedef ExtentHeap<TPtr, PPtr> ExtentHeapT;
+    typedef Slab<Context, TPtr, PPtr> SlabT;
+    typedef ExtentHeap<Context, TPtr, PPtr> ExtentHeapT;
 
 public:
     SlabHeap()
@@ -72,22 +72,27 @@ public:
         }
     }
 
-    ErrorCode malloc(size_t size_bytes, TPtr<void>* ptr)
+    ErrorCode malloc(Context& ctx, size_t size_bytes, TPtr<void>* ptr)
     {
         const int szclass = sizeclass(size_bytes);
         SlabT* slab = find_slab(szclass);
 
+        // No slab of requested sizeclass, so try to reuse an empty one.
+        if (!slab) {
+            slab = reuse_empty_slab(ctx, szclass);
+        }
+
         // No slab in this heap so try to get a slab from the parent slab 
         // heap if we have one
         if (!slab && parentslabheap_) {
-            slab = parentslabheap_->acquire_slab(szclass);
+            slab = parentslabheap_->acquire_slab(ctx, szclass);
             if (slab) {
                 insert_slab(slab, szclass);
             }
         }
  
         // No slab in parent heap so try to get a new chunk from the extent 
-        // heap if we have one
+        // heap and format it as a slab
         if (!slab && extentheap_) {
             TPtr<void> region;
             if (extentheap_->malloc(slab_size, &region) == kErrorCodeOk) {
@@ -101,9 +106,9 @@ public:
         }
     }
 
-    void free(TPtr<void> ptr) 
+    void free(Context& ctx, TPtr<void> ptr) 
     {
-        Extent<TPtr,PPtr> ex;
+        Extent<Context,TPtr,PPtr> ex;
         ErrorCode rc = extentheap_->extent(ptr, &ex);
         ASSERT_ND(rc == kErrorCodeOk);
 
@@ -116,7 +121,7 @@ public:
             if (owner) {
                 owner->lock();
                 if (owner == slab->owner()) {
-                    owner->free_block(slab, ptr);
+                    owner->free_block(ctx, slab, ptr);
                     owner->unlock();
                     break;
                 }
@@ -126,13 +131,13 @@ public:
     }
 
 
-    TPtr<void> alloc_block(SlabT* slab)
+    TPtr<void> alloc_block(Context& ctx, SlabT* slab)
     {
         TPtr<void> ptr;
 
         bool empty = slab->empty();
         int old_fullness = slab->fullness();
-        ptr = slab->alloc_block();
+        ptr = slab->alloc_block(ctx);
         if (!ptr) {
             int new_fullness = slab->fullness();
             int szclass = slab->sizeclass();
@@ -144,10 +149,10 @@ public:
         return ptr;
     }
 
-    void free_block(SlabT* slab, TPtr<void> ptr)
+    void free_block(Context& ctx, SlabT* slab, TPtr<void> ptr)
     {
         int old_fullness = slab->fullness();
-        slab->free_block(ptr);
+        slab->free_block(ctx, ptr);
         if (slab->empty()) {
             LOG(info) << "Free block: " << "recycle now empty slab";
             slab->remove();
@@ -165,6 +170,9 @@ public:
         SlabT* slab;
 
         slab = find_slab(szclass);
+        if (!slab) {
+            slab = reuse_empty_slab(szclass);
+        }
         if (slab) {
             remove_slab(slab);
             return slab;
@@ -195,13 +203,10 @@ public:
             }
         }
 
-        if (!slab) {
-            slab = reuse_empty_slab(szclass);
-        }
         return slab;
     }
 
-    SlabT* insert_slab(TPtr<nvSlab<TPtr>> nvslab)
+    SlabT* insert_slab(TPtr<nvSlab<Context,TPtr>> nvslab)
     {
         LOG(info) << "Insert slab: " << nvslab;
 
@@ -290,7 +295,7 @@ private:
         slab->insert(&empty_slabs_);
     }
 
-    SlabT* reuse_empty_slab(int szclass)
+    SlabT* reuse_empty_slab(Context& ctx, int szclass)
     {
         SlabT* slab = NULL;
         if (empty_slabs_.size()) {

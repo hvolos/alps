@@ -34,10 +34,13 @@
 
 using namespace alps;
 
-typedef nvSlab<TPtr> nvSlab_t;
+class Context {
 
-typedef Slab<TPtr, PPtr> Slab_t;
+};
 
+typedef nvSlab<Context, TPtr> nvSlab_t;
+
+typedef Slab<Context, TPtr, PPtr> Slab_t;
 
 template<template<typename> class TPtr>
 class SlabTestT: public ::testing::Test {
@@ -94,6 +97,7 @@ TEST_F(SlabTest, nvslab)
 
 TEST_F(SlabTest, nvslab_alloc_block_130)
 {
+    Context ctx;
     char pattern[1024];
     memset(pattern, 0x0, 1024);
 
@@ -108,20 +112,21 @@ TEST_F(SlabTest, nvslab_alloc_block_130)
     TPtr<void> blk0 = nvslab->block(0);
     EXPECT_EQ(1, nvslab->is_free(0)); 
     memcpy(blk0.get(), pattern, blksz);
-    nvslab->set_alloc(0);
+    nvslab->set_alloc(ctx, 0);
     EXPECT_EQ(0, memcmp(blk0.get(), pattern, blksz));
     EXPECT_EQ(0, nvslab->is_free(0));
 
     // allocate max block
-    int max_block_id = nvSlabHeader<TPtr>::max_nblocks(256*1024, blksz) - 1;
+    int max_block_id = nvSlabHeader<Context,TPtr>::max_nblocks(256*1024, blksz) - 1;
     EXPECT_EQ(1, nvslab->is_free(max_block_id)); 
-    nvslab->set_alloc(max_block_id);
+    nvslab->set_alloc(ctx, max_block_id);
     EXPECT_EQ(0, memcmp(blk0.get(), pattern, blksz));
     EXPECT_EQ(0, nvslab->is_free(max_block_id)); 
 }
 
 TEST_F(SlabTest, nvslab_alloc_block_1K)
 {
+    Context ctx;
     TPtr<nvSlab_t> nvslab = alloc<nvSlab_t>(256*1024);
 
     int szcl = sizeclass(1024);   
@@ -129,26 +134,27 @@ TEST_F(SlabTest, nvslab_alloc_block_1K)
     nvSlab_t::make(nvslab, slab_size, szcl);
 
     EXPECT_EQ(1, nvslab->is_free(0)); 
-    nvslab->set_alloc(0);
+    nvslab->set_alloc(ctx, 0);
     EXPECT_EQ(0, nvslab->is_free(0)); 
 
 
     EXPECT_EQ(1, nvslab->is_free(1)); 
-    nvslab->set_alloc(1);
+    nvslab->set_alloc(ctx, 1);
     EXPECT_EQ(0, nvslab->is_free(1)); 
 }
 
 TEST_F(SlabTest, slab_load)
 {
+    Context ctx;
     TPtr<nvSlab_t> nvslab = alloc<nvSlab_t>(256*1024);
 
     int szcl_1K = sizeclass(1024);   
 
     nvSlab_t::make(nvslab, slab_size, szcl_1K);
 
-    nvslab->set_alloc(0);
-    nvslab->set_alloc(1);
-    nvslab->set_alloc(3);
+    nvslab->set_alloc(ctx, 0);
+    nvslab->set_alloc(ctx, 1);
+    nvslab->set_alloc(ctx, 3);
 
     Slab_t* slab= Slab_t::load(nvslab);
     EXPECT_EQ(slab->nblocks() - 3, slab->nblocks_free());
@@ -156,6 +162,7 @@ TEST_F(SlabTest, slab_load)
 
 TEST_F(SlabTest, slab_alloc_block)
 {
+    Context ctx;
     TPtr<nvSlab_t> nvslab = alloc<nvSlab_t>(256*1024);
 
     int szcl_1K = sizeclass(1024);   
@@ -163,9 +170,9 @@ TEST_F(SlabTest, slab_alloc_block)
     nvSlab_t::make(nvslab, slab_size, szcl_1K);
 
     Slab_t* slab = Slab_t::load(nvslab);
-    slab->alloc_block();
-    slab->alloc_block();
-    slab->alloc_block();
+    slab->alloc_block(ctx);
+    slab->alloc_block(ctx);
+    slab->alloc_block(ctx);
     EXPECT_EQ(slab->nblocks() - 3, slab->nblocks_free());
 
     Slab_t* shadow_slab = Slab_t::load(nvslab);

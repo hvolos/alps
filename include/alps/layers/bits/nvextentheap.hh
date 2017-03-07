@@ -26,7 +26,7 @@ struct nvBlock {
 };
 
 
-template<template<typename> class TPtr>
+template<typename Context, template<typename> class TPtr>
 struct nvExtentHeader {
 public:
     enum {
@@ -87,7 +87,7 @@ public:
     uint32_t size_;
 };
 
-template<template<typename> class TPtr, template<typename> class PPtr>
+template<typename Context, template<typename> class TPtr, template<typename> class PPtr>
 class ExtentHeap;
 
 struct nvExtentHeapHeader {
@@ -108,7 +108,7 @@ struct nvExtentHeapHeader {
 
 static_assert(sizeof(nvExtentHeapHeader) == 64, "nvExtentHeapHeader must be multiple of cache-line size");
 
-template<template<typename> class TPtr, template<typename> class PPtr>
+template<typename Context, template<typename> class TPtr, template<typename> class PPtr>
 struct nvExtentHeap {
 public:
     static TPtr<nvExtentHeap> make(TPtr<void> region, size_t region_size, size_t block_log2size)
@@ -119,17 +119,17 @@ public:
         // doesn't share a cacheline with the last block-header. 
         size_t block_size = 1LLU << block_log2size;
         size_t effective_region_size = region_size - sizeof(nvExtentHeap);
-        size_t max_nblocks = effective_region_size / (sizeof(nvExtentHeader<TPtr>) + block_size); 
+        size_t max_nblocks = effective_region_size / (sizeof(nvExtentHeader<Context, TPtr>) + block_size); 
         // Adjust (reduce) number of blocks to accomodate extra space needed
         // for alignment.
-        size_t extent_headers_aligned_total_size = round_up(max_nblocks * sizeof(nvExtentHeader<TPtr>), kCacheLineSize);
+        size_t extent_headers_aligned_total_size = round_up(max_nblocks * sizeof(nvExtentHeader<Context, TPtr>), kCacheLineSize);
         size_t blocks_total_size = effective_region_size - extent_headers_aligned_total_size;
         size_t nblocks = blocks_total_size / block_size;
 
-        assert((sizeof(nvExtentHeap<TPtr,PPtr>) + (sizeof(nvExtentHeader<TPtr>) + block_size) * nblocks <= region_size)); 
+        assert((sizeof(nvExtentHeap<Context, TPtr,PPtr>) + (sizeof(nvExtentHeader<Context, TPtr>) + block_size) * nblocks <= region_size)); 
 
         // Set and persist header fields
-        TPtr<nvExtentHeap<TPtr, PPtr> > exheap = region;
+        TPtr<nvExtentHeap<Context, TPtr, PPtr> > exheap = region;
         exheap->header_.region_size_ = region_size;
         exheap->header_.block_log2size_ = block_log2size;
         exheap->header_.nblocks = nblocks;
@@ -141,19 +141,19 @@ public:
 
         // Format block headers
         for (size_t i=0; i<exheap->header_.nblocks; i++) {
-            nvExtentHeader<TPtr>::make(exheap->extent_header(i), nvExtentHeader<TPtr>::kBlockTypeFree);
+            nvExtentHeader<Context, TPtr>::make(exheap->extent_header(i), nvExtentHeader<Context, TPtr>::kBlockTypeFree);
         } 
         return exheap;
     }
 
     static TPtr<nvExtentHeap> load(TPtr<void> region)
     {
-        return reinterpret_cast<nvExtentHeap<TPtr, PPtr>*>(region.get());
+        return reinterpret_cast<nvExtentHeap<Context, TPtr, PPtr>*>(region.get());
     }
 
-    TPtr<nvExtentHeader<TPtr> > extent_header(int idx)
+    TPtr<nvExtentHeader<Context, TPtr> > extent_header(int idx)
     {
-        return &payload_[header_.extent_headers_offset_ + idx*sizeof(nvExtentHeader<TPtr>)];
+        return &payload_[header_.extent_headers_offset_ + idx*sizeof(nvExtentHeader<Context, TPtr>)];
     }
  
     TPtr<nvBlock> block(int idx) 
@@ -164,16 +164,16 @@ public:
 
     bool is_free(const ExtentInterval& interval)
     {
-        TPtr<nvExtentHeader<TPtr>> exhdr  = extent_header(interval.start());
+        TPtr<nvExtentHeader<Context, TPtr>> exhdr  = extent_header(interval.start());
         return exhdr->is_free();
     }
 
-    ExtentHeap<TPtr, PPtr>* extentheap() 
+    ExtentHeap<Context, TPtr, PPtr>* extentheap() 
     {
-        return reinterpret_cast<ExtentHeap<TPtr, PPtr>*>(header_.extentheap_); // pointer to the heap's volatile descriptor for quick lookup
+        return reinterpret_cast<ExtentHeap<Context, TPtr, PPtr>*>(header_.extentheap_); // pointer to the heap's volatile descriptor for quick lookup
     }
 
-    void set_extentheap(ExtentHeap<TPtr, PPtr>* extentheap) {
+    void set_extentheap(ExtentHeap<Context, TPtr, PPtr>* extentheap) {
         header_.extentheap_ = reinterpret_cast<void*>(header_.extentheap_);
     }
 
@@ -186,11 +186,11 @@ private:
 
         *extent_is_free = false;
         for (i=begin; i<end; i++) {
-            TPtr<nvExtentHeader<TPtr> > exh = extent_header(i);
-            if (exh->type_ == nvExtentHeader<TPtr>::kBlockTypeFree) {
+            TPtr<nvExtentHeader<Context, TPtr> > exh = extent_header(i);
+            if (exh->type_ == nvExtentHeader<Context, TPtr>::kBlockTypeFree) {
                 *extent_is_free = true;
                 ext_end = i + 1;
-            } else if (exh->type_ == nvExtentHeader<TPtr>::kBlockTypeExtentFirst) {
+            } else if (exh->type_ == nvExtentHeader<Context, TPtr>::kBlockTypeExtentFirst) {
                 if (ext_end > ext_begin) {
                     // report the free extent we found before this one
                     break;
@@ -214,7 +214,7 @@ public:
         Iterator()
         { }
 
-        Iterator(TPtr<nvExtentHeap<TPtr, PPtr>> nvexheap, size_t begin, size_t end, size_t cur)
+        Iterator(TPtr<nvExtentHeap<Context, TPtr, PPtr>> nvexheap, size_t begin, size_t end, size_t cur)
             : nvexheap_(nvexheap),
               begin_(begin),
               end_(end),
@@ -265,7 +265,7 @@ public:
         }
 
     //private:
-        TPtr<nvExtentHeap<TPtr, PPtr>> nvexheap_;
+        TPtr<nvExtentHeap<Context, TPtr, PPtr>> nvexheap_;
         size_t                         begin_;
         size_t                         end_;
         size_t                         cur_;

@@ -27,10 +27,14 @@
 
 using namespace alps;
 
-typedef nvExtentHeap<TPtr, PPtr> nvExtentHeap_t;
+class Context {
 
-typedef ExtentHeap<TPtr, PPtr> ExtentHeap_t;
-typedef Extent<TPtr, PPtr> Extent_t;
+};
+
+typedef nvExtentHeap<Context, TPtr, PPtr> nvExtentHeap_t;
+
+typedef ExtentHeap<Context, TPtr, PPtr> ExtentHeap_t;
+typedef Extent<Context, TPtr, PPtr> Extent_t;
 
 size_t region_size = 1024*1024;
 size_t block_log2size = 12; // 4KB

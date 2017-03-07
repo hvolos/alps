@@ -37,14 +37,14 @@ namespace alps {
 /**
  * @brief Variable-size slab header
  */
-template<template<typename> class TPtr>
+template<typename Context, template<typename> class TPtr>
 struct nvSlabHeader {
     // When adding a member field, ensure method size_of() includes that field too
     uint32_t header_size;
     uint16_t sizeclass;
     uint32_t nblocks;
-    void*    slab; // pointer to the slab's volatile descriptor for quick lookup
-    nvBitMap block_map; // variable size structure
+    void* slab; // pointer to the slab's volatile descriptor for quick lookup
+    nvBitMap<Context> block_map; // variable size structure
 
     // total size of the fixed part of the header
     static size_t size_of() {
@@ -55,13 +55,13 @@ struct nvSlabHeader {
     {
         size_t block_size = size_from_class(size_class);
         size_t nblocks = max_nblocks(slab_size, block_size);
-        size_t header_sz = size_of() + nvBitMap::size_of(nblocks);
+        size_t header_sz = size_of() + nvBitMap<Context>::size_of(nblocks);
         header->sizeclass = size_class;
         header->header_size = align<size_t, kCacheLineSize>(header_sz);
         // Adjust (reduce) number of blocks to accomodate extra space needed 
         // for roundup
         header->nblocks = (slab_size - header->header_size) / block_size;
-        nvBitMap::make(nblocks, &header->block_map);
+        nvBitMap<Context>::make(nblocks, &header->block_map);
         //persist((void*)&header, sizeof(nvSlabHeader));
         //persist((void*)&header->block_map, nvBitMap::size_of(nblocks));
         return header;
@@ -81,22 +81,22 @@ struct nvSlabHeader {
      */
     static size_t max_nblocks(size_t slab_size, size_t block_size) 
     {
-        size_t nblocks_per_bitmap_byte = nvBitMap::kEntrySize;
+        size_t nblocks_per_bitmap_byte = nvBitMap<Context>::kEntrySize;
         return (slab_size - size_of() - 1) * nblocks_per_bitmap_byte / (1 + nblocks_per_bitmap_byte * block_size); 
     }
 };
 
 // Slab
 // A slab comprises a header followed by a number of blocks. 
-template<template<typename> class TPtr>
+template<typename Context, template<typename> class TPtr>
 struct nvSlab
 {
-    nvSlabHeader<TPtr> header;    // Variable-size header
+    nvSlabHeader<Context, TPtr> header;    // Variable-size header
 
     static TPtr<nvSlab> make(TPtr<void> region, size_t slab_size, int size_class)
     {
         TPtr<nvSlab> nvslab = region;
-        nvSlabHeader<TPtr>::make(&nvslab->header, slab_size, size_class);
+        nvSlabHeader<Context, TPtr>::make(&nvslab->header, slab_size, size_class);
         assert(nvslab->block_offset(nvslab->nblocks()) <= slab_size);
         return nvslab;
     }
@@ -130,14 +130,14 @@ struct nvSlab
         return !header.block_map.is_set(block_idx);
     }
 
-    void set_alloc(size_t block_idx)
+    void set_alloc(Context& ctx, size_t block_idx)
     {
-        header.block_map.set(block_idx);
+        header.block_map.set(ctx, block_idx);
     }
 
-    void set_free(size_t block_idx)
+    void set_free(Context& ctx, size_t block_idx)
     {
-        header.block_map.clear(block_idx);
+        header.block_map.clear(ctx, block_idx);
     }
 
     void set_slab(void* slab)
@@ -168,7 +168,7 @@ const int kSlabFullnessBins = 3;
  * blocks in a slab must be done through the SlabHeap that owns the slab.
  *
  */
-template<template<typename> class TPtr, template<typename> class PPtr>
+template<typename Context, template<typename> class TPtr, template<typename> class PPtr>
 class Slab
 {
 public:
@@ -177,7 +177,7 @@ public:
 public:
     static Slab* make(TPtr<void> region, size_t slab_size, size_t size_class)
     {
-        TPtr<nvSlab<TPtr>> nvslab = nvSlab<TPtr>::make(region, slab_size, size_class);
+        TPtr<nvSlab<Context, TPtr>> nvslab = nvSlab<Context, TPtr>::make(region, slab_size, size_class);
         Slab* slab = new Slab(nvslab);
         slab->init();
         return slab;
@@ -185,13 +185,13 @@ public:
 
     static Slab* load(TPtr<void> region)
     {
-        TPtr<nvSlab<TPtr>> nvslab = region;
+        TPtr<nvSlab<Context,TPtr>> nvslab = region;
         Slab* slab = new Slab(nvslab);
         slab->init();
         return slab;
     }
 
-    Slab(TPtr<nvSlab<TPtr>> nvslab)
+    Slab(TPtr<nvSlab<Context,TPtr>> nvslab)
         : nvslab_(nvslab),
           slab_list_(NULL)
     { 
@@ -212,7 +212,7 @@ public:
 
     void reset(size_t slab_size, int szclass)
     {   
-        nvSlab<TPtr>::make(nvslab_, slab_size, szclass);
+        nvSlab<Context,TPtr>::make(nvslab_, slab_size, szclass);
         init();
     }
 
@@ -281,14 +281,14 @@ public:
         return ((kSlabFullnessBins - 1) * (nblocks() - nblocks_free())) / nblocks();
     }
 
-    TPtr<void> alloc_block()
+    TPtr<void> alloc_block(Context& ctx)
     {
         TPtr<void> ptr;
 
         if (!free_list_.empty()) {
             int bid = free_list_.front();
             free_list_.pop_front();
-            nvslab_->set_alloc(bid);
+            nvslab_->set_alloc(ctx, bid);
             ptr = nvslab_->block(bid);
             LOG(info) << "Allocate block: " << "nvslab: " << nvslab_ << " block: " << bid;
         } else {
@@ -298,7 +298,7 @@ public:
         return ptr;
     }
 
-    void free_block(TPtr<void> ptr)
+    void free_block(Context& ctx, TPtr<void> ptr)
     {
         size_t bid = nvslab_->block_id(ptr);
 
@@ -322,7 +322,7 @@ public:
 
     std::atomic<void*>           owner_;
     std::list<size_t>            free_list_;
-    TPtr<nvSlab<TPtr>>           nvslab_;
+    TPtr<nvSlab<Context, TPtr>>  nvslab_;
     SlabList*                    slab_list_; // list this slab belongs to
     typename SlabList::iterator  slab_list_it_; // position in the slab list
 };

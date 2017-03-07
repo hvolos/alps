@@ -33,19 +33,19 @@
 
 namespace alps {
 
-template<template<typename> class TPtr, template<typename> class PPtr>
+template<typename Context, template<typename> class TPtr, template<typename> class PPtr>
 class ExtentHeap;
 
 
-template<template<typename> class TPtr, template<typename> class PPtr>
+template<typename Context, template<typename> class TPtr, template<typename> class PPtr>
 class Extent {
-    friend ExtentHeap<TPtr,PPtr>;
+    friend ExtentHeap<Context, TPtr, PPtr>;
 public:
     Extent()
         : exheap_(NULL)
     { }
 
-    Extent(ExtentHeap<TPtr,PPtr>* exheap, size_t start, size_t len)
+    Extent(ExtentHeap<Context, TPtr, PPtr>* exheap, size_t start, size_t len)
         : exheap_(exheap),
           interval_(start, len)
     { 
@@ -57,7 +57,7 @@ public:
         return interval_;
     }
 
-    TPtr<nvExtentHeader<TPtr>> nvheader()
+    TPtr<nvExtentHeader<Context, TPtr>> nvheader()
     {
         return nvextentheader_;
     }
@@ -67,7 +67,7 @@ public:
         return nvextent_;
     }
 
-    bool operator==(const Extent<TPtr, PPtr> &other) const 
+    bool operator==(const Extent<Context, TPtr, PPtr> &other) const 
     {  
         return interval_ == other.interval_;  
     }
@@ -80,8 +80,8 @@ public:
 private:
     void init()
     {
-        TPtr<nvExtentHeap<TPtr, PPtr>> nvexheap = exheap_->nvexheap_;
-        nvextentheader_ = static_cast<TPtr<nvExtentHeader<TPtr>>>(nvexheap->extent_header(interval_.start()));
+        TPtr<nvExtentHeap<Context, TPtr, PPtr>> nvexheap = exheap_->nvexheap_;
+        nvextentheader_ = static_cast<TPtr<nvExtentHeader<Context, TPtr>>>(nvexheap->extent_header(interval_.start()));
         nvextent_ = nvexheap->block(interval_.start());
     }
 
@@ -95,13 +95,14 @@ private:
         nvextentheader_->mark_free();
     }
     
-    ExtentHeap<TPtr,PPtr>*     exheap_;
-    ExtentInterval             interval_;
-    TPtr<nvExtentHeader<TPtr>> nvextentheader_;
+    ExtentHeap<Context, TPtr, PPtr>* exheap_;
+    ExtentInterval interval_;
+    TPtr<nvExtentHeader<Context,TPtr>> nvextentheader_;
     TPtr<void>                 nvextent_;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const Extent<TPtr,PPtr>& ex)
+template<typename Context, template<typename> class TPtr, template<typename> class PPtr>
+inline std::ostream& operator<<(std::ostream& os, const Extent<Context, TPtr, PPtr>& ex)
 {
     ex.stream_to(os);
     return os;
@@ -111,16 +112,16 @@ inline std::ostream& operator<<(std::ostream& os, const Extent<TPtr,PPtr>& ex)
 /**
  * @brief Manages a heap of extents
  */
-template<template<typename> class TPtr, template<typename> class PPtr>
+template<typename Context, template<typename> class TPtr, template<typename> class PPtr>
 class ExtentHeap {
-    friend Extent<TPtr,PPtr>;
+    friend Extent<Context, TPtr,PPtr>;
 
 public:
     static ExtentHeap* make(TPtr<void> region, size_t region_size, size_t block_log2size)
     {
         ExtentHeap* exheap = new ExtentHeap;
 
-        exheap->nvexheap_ = nvExtentHeap<TPtr, PPtr>::make(region, region_size, block_log2size);
+        exheap->nvexheap_ = nvExtentHeap<Context, TPtr, PPtr>::make(region, region_size, block_log2size);
         exheap->init();
 
         return exheap;
@@ -130,7 +131,7 @@ public:
     {
         ExtentHeap* exheap = new ExtentHeap;
 
-        exheap->nvexheap_ = nvExtentHeap<TPtr, PPtr>::load(region);
+        exheap->nvexheap_ = nvExtentHeap<Context, TPtr, PPtr>::load(region);
         exheap->init();
 
         return exheap;
@@ -141,13 +142,13 @@ public:
         return 1 << nvexheap_->header_.block_log2size_;
     }
 
-    ErrorCode extent(ExtentInterval interval, Extent<TPtr,PPtr>* ex)
+    ErrorCode extent(ExtentInterval interval, Extent<Context, TPtr,PPtr>* ex)
     {
-        *ex = Extent<TPtr,PPtr>(this, interval.start(), interval.len());
+        *ex = Extent<Context, TPtr, PPtr>(this, interval.start(), interval.len());
         return kErrorCodeOk;
     }
 
-    ErrorCode extent(TPtr<void> ptr, Extent<TPtr,PPtr>* ex)
+    ErrorCode extent(TPtr<void> ptr, Extent<Context, TPtr, PPtr>* ex)
     {
         TPtr<nvBlock> nvblock = ptr;
 
@@ -158,17 +159,17 @@ public:
         }
         uintptr_t diff = nvblock - nvexheap_->block(0);
         size_t idx = diff >> nvexheap_->header_.block_log2size_;
-        TPtr<nvExtentHeader<TPtr>> exhdr = nvexheap_->extent_header(idx);
-        *ex = Extent<TPtr,PPtr>(this, idx, exhdr->size());
+        TPtr<nvExtentHeader<Context, TPtr>> exhdr = nvexheap_->extent_header(idx);
+        *ex = Extent<Context, TPtr, PPtr>(this, idx, exhdr->size());
 
         return kErrorCodeOk;
     }
 
-    ErrorCode alloc_extent(size_t size_nblocks, Extent<TPtr,PPtr>* ex)
+    ErrorCode alloc_extent(size_t size_nblocks, Extent<Context, TPtr, PPtr>* ex)
     {
         ExtentInterval exintv;
         if (fsmap_.alloc_extent(size_nblocks, &exintv) == 0) {
-            *ex = Extent<TPtr,PPtr>(this, exintv.start(), exintv.len());
+            *ex = Extent<Context, TPtr, PPtr>(this, exintv.start(), exintv.len());
             ex->mark_alloc();
             LOG(info) << "Allocated extent: " << ex;
             return kErrorCodeOk;
@@ -176,7 +177,7 @@ public:
         return kErrorCodeOutofmemory;
     }
 
-    ErrorCode free_extent(Extent<TPtr,PPtr>& ex)
+    ErrorCode free_extent(Extent<Context, TPtr, PPtr>& ex)
     {
         fsmap_.free_extent(ex.interval());
         ex.mark_free();
@@ -185,7 +186,7 @@ public:
 
     ErrorCode free_extent(TPtr<void> ptr)
     {
-        Extent<TPtr,PPtr> ex;
+        Extent<Context,TPtr,PPtr> ex;
         CHECK_ERROR_CODE(extent(ptr, &ex));
         return free_extent(ex);
     }
@@ -193,7 +194,7 @@ public:
     ErrorCode malloc(size_t size_bytes, TPtr<void>* ptr)
     {
         ErrorCode rc;
-        Extent<TPtr,PPtr> ex;
+        Extent<Context,TPtr,PPtr> ex;
 
         pthread_mutex_lock(&mutex_);
 
@@ -222,7 +223,7 @@ public:
         Iterator()
         { }
 
-        Iterator(ExtentHeap<TPtr, PPtr>* exheap, typename nvExtentHeap<TPtr, PPtr>::Iterator nvit)
+        Iterator(ExtentHeap<Context, TPtr, PPtr>* exheap, typename nvExtentHeap<Context, TPtr, PPtr>::Iterator nvit)
             : exheap_(exheap),
                 //nvexheap_(exheap->nvexheap_),
               nvit_(nvit)
@@ -234,10 +235,10 @@ public:
             return *this;
         }  
 
-        Extent<TPtr,PPtr> operator*()
+        Extent<Context, TPtr, PPtr> operator*()
         {
             ExtentInterval interval = *nvit_;
-            return Extent<TPtr,PPtr>(exheap_, interval.start(), interval.len());
+            return Extent<Context, TPtr, PPtr>(exheap_, interval.start(), interval.len());
         }
 
         bool operator==(const Iterator& other) 
@@ -250,8 +251,8 @@ public:
             return nvit_ != other.nvit_;
         }
 
-        ExtentHeap<TPtr, PPtr>* exheap_;
-        typename nvExtentHeap<TPtr,PPtr>::Iterator nvit_;
+        ExtentHeap<Context, TPtr, PPtr>* exheap_;
+        typename nvExtentHeap<Context, TPtr, PPtr>::Iterator nvit_;
     };
 
     Iterator begin()
@@ -268,7 +269,7 @@ private:
 
     ErrorStack init()
     {
-        typename nvExtentHeap<TPtr, PPtr>::Iterator it;
+        typename nvExtentHeap<Context, TPtr, PPtr>::Iterator it;
         for (it = nvexheap_->begin(); it != nvexheap_->end(); ++it) {
             if (nvexheap_->is_free(*it)) {
                 LOG(info) << "Load free extent: " << *it;
@@ -279,9 +280,9 @@ private:
     }
 
 private:
-    pthread_mutex_t                mutex_;
-    TPtr<nvExtentHeap<TPtr, PPtr>> nvexheap_;
-    FreeSpaceMap<TPtr>             fsmap_;        
+    pthread_mutex_t mutex_;
+    TPtr<nvExtentHeap<Context, TPtr, PPtr>> nvexheap_;
+    FreeSpaceMap<TPtr> fsmap_;        
 };
 
 

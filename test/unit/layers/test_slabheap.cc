@@ -24,13 +24,19 @@
 #include "alps/layers/pointer.hh"
 #include "alps/layers/slabheap.hh"
 
+#include "test_common.hh"
+
 using namespace alps;
 
-typedef nvSlab<TPtr> nvSlab_t;
+class Context {
 
-typedef Slab<TPtr, PPtr> Slab_t;
+};
 
-typedef SlabHeap<TPtr, PPtr> SlabHeap_t;
+typedef nvSlab<Context,TPtr> nvSlab_t;
+
+typedef Slab<Context, TPtr, PPtr> Slab_t;
+
+typedef SlabHeap<Context, TPtr, PPtr> SlabHeap_t;
 
 
 // Test SlabHeap functionality with no extent heap and zone heap for 
@@ -46,12 +52,12 @@ public:
         return (T*) malloc(size);
     }
 
-    TPtr<nvSlab_t> alloc_nvslab(int block_sizeclass, unsigned int perc_full) {
+    TPtr<nvSlab_t> alloc_nvslab(Context& ctx, int block_sizeclass, unsigned int perc_full) {
         TPtr<nvSlab_t> nvslab = alloc<nvSlab_t>(slab_size);
         nvSlab_t::make(nvslab, slab_size, block_sizeclass);
         for (size_t i=0, nalloc=0; i<nvslab->nblocks(); i++) {
             if (100*nalloc/nvslab->nblocks() < perc_full) {
-                nvslab->set_alloc(i);
+                nvslab->set_alloc(ctx, i);
                 nalloc++;
             } else {
                 break;
@@ -65,12 +71,13 @@ typedef SlabHeapTestT<TPtr> SlabHeapTest;
 
 TEST_F(SlabHeapTest, insert)
 {
+    Context ctx;
     SlabHeap_t slabheap;
 
-    Slab_t* slab0 = slabheap.insert_slab(alloc_nvslab(71, 0));
-    Slab_t* slab1 = slabheap.insert_slab(alloc_nvslab(71, 1));
-    Slab_t* slab2 = slabheap.insert_slab(alloc_nvslab(71, 50));
-    Slab_t* slab3 = slabheap.insert_slab(alloc_nvslab(71, 99));
+    Slab_t* slab0 = slabheap.insert_slab(alloc_nvslab(ctx, 71, 0));
+    Slab_t* slab1 = slabheap.insert_slab(alloc_nvslab(ctx, 71, 1));
+    Slab_t* slab2 = slabheap.insert_slab(alloc_nvslab(ctx, 71, 50));
+    Slab_t* slab3 = slabheap.insert_slab(alloc_nvslab(ctx, 71, 99));
 
     UNUSED_ND(slab0);
     UNUSED_ND(slab1);
@@ -82,9 +89,9 @@ TEST_F(SlabHeapTest, insert)
     
     std::cout << slabheap << std::endl; 
 
-    slabheap.alloc_block(slab4);
-    slabheap.alloc_block(slab4);
-    slabheap.alloc_block(slab4);
+    slabheap.alloc_block(ctx, slab4);
+    slabheap.alloc_block(ctx, slab4);
+    slabheap.alloc_block(ctx, slab4);
     
     std::cout << slabheap << std::endl; 
 } 
@@ -92,7 +99,7 @@ TEST_F(SlabHeapTest, insert)
 
 int main(int argc, char** argv)
 {
-    //::alps::init_test_env<::alps::TestEnvironment>(argc, argv);
+    ::alps::init_test_env<::alps::TestEnvironment>(argc, argv);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

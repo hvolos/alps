@@ -19,7 +19,7 @@
 
 #include <stdint.h>
 
-
+template<typename Context>
 struct nvBitMap {
     static const int kEntrySizeLog2 = 3;
     static const int kEntrySize = 1 << kEntrySizeLog2;
@@ -60,12 +60,12 @@ struct nvBitMap {
         return 1 << (bit_index & ((1 << kEntrySizeLog2) - 1));
     }
 
-    void clear(int bit_index) 
+    void clear(Context& ctx, int bit_index) 
     {
         bv_[elt(bit_index)] = bv_[elt(bit_index)] & ~mask(bit_index);
     }
 
-    void set(int bit_index) 
+    void set(Context& ctx, int bit_index) 
     {
         bv_[elt(bit_index)] = bv_[elt(bit_index)] | mask(bit_index);  
     }
