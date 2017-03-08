@@ -52,6 +52,10 @@ public:
         init();
     }
 
+    size_t start() const { return interval_.start(); }
+    size_t len() const { return interval_.len(); }
+    size_t end() const { return interval_.end(); }
+
     ExtentInterval interval()
     {
         return interval_;
@@ -165,7 +169,7 @@ public:
         return kErrorCodeOk;
     }
 
-    ErrorCode alloc_extent(size_t size_nblocks, Extent<Context, TPtr, PPtr>* ex)
+    ErrorCode alloc_extent(Context& ctx, size_t size_nblocks, Extent<Context, TPtr, PPtr>* ex)
     {
         ExtentInterval exintv;
         if (fsmap_.alloc_extent(size_nblocks, &exintv) == 0) {
@@ -177,21 +181,21 @@ public:
         return kErrorCodeOutofmemory;
     }
 
-    ErrorCode free_extent(Extent<Context, TPtr, PPtr>& ex)
+    ErrorCode free_extent(Context& ctx, Extent<Context, TPtr, PPtr>& ex)
     {
         fsmap_.free_extent(ex.interval());
         ex.mark_free();
         return kErrorCodeOk;
     }
 
-    ErrorCode free_extent(TPtr<void> ptr)
+    ErrorCode free_extent(Context& ctx, TPtr<void> ptr)
     {
         Extent<Context,TPtr,PPtr> ex;
         CHECK_ERROR_CODE(extent(ptr, &ex));
-        return free_extent(ex);
+        return free_extent(ctx, ex);
     }
 
-    ErrorCode malloc(size_t size_bytes, TPtr<void>* ptr)
+    ErrorCode malloc(Context& ctx, size_t size_bytes, TPtr<void>* ptr)
     {
         ErrorCode rc;
         Extent<Context,TPtr,PPtr> ex;
@@ -201,20 +205,30 @@ public:
         // round up to next multiple of block_size
         size_t size_nblocks = size_bytes / blocksize() + (size_bytes % blocksize() ? 1: 0);
 
-        rc = alloc_extent(size_nblocks, ex);
+        rc = alloc_extent(ctx, size_nblocks, &ex);
         if (rc == kErrorCodeOk) {
-            *ptr = ex->nvextent();
+            *ptr = ex.nvextent();
         }
 
         pthread_mutex_unlock(&mutex_);
         return rc;
     }
 
-    void free(TPtr<void> ptr)
+    void free(Context& ctx, TPtr<void> ptr)
     {
         pthread_mutex_lock(&mutex_);
-        ErrorCode rc = free_extent(ptr);
+        ErrorCode rc = free_extent(ctx, ptr);
+        ASSERT_ND(rc == kErrorCodeOk);
         pthread_mutex_unlock(&mutex_);
+    }
+
+    size_t getsize(TPtr<void> ptr)
+    {
+        Extent<Context,TPtr,PPtr> ex;
+        if (kErrorCodeOk != extent(ptr, &ex)) {
+            return 0;
+        }
+        return blocksize() * ex.len();
     }
 
 public:
@@ -269,6 +283,7 @@ private:
 
     ErrorStack init()
     {
+        pthread_mutex_init(&mutex_, NULL);
         typename nvExtentHeap<Context, TPtr, PPtr>::Iterator it;
         for (it = nvexheap_->begin(); it != nvexheap_->end(); ++it) {
             if (nvexheap_->is_free(*it)) {

@@ -145,6 +145,12 @@ struct nvSlab
         header.slab = slab;
     }
 
+    void* slab()
+    {
+        return header.slab;
+    }
+
+
     size_t nblocks_free() 
     {
         size_t cnt=0; 
@@ -180,6 +186,7 @@ public:
         TPtr<nvSlab<Context, TPtr>> nvslab = nvSlab<Context, TPtr>::make(region, slab_size, size_class);
         Slab* slab = new Slab(nvslab);
         slab->init();
+        nvslab->set_slab(slab);
         return slab;
     }
 
@@ -188,15 +195,20 @@ public:
         TPtr<nvSlab<Context,TPtr>> nvslab = region;
         Slab* slab = new Slab(nvslab);
         slab->init();
+        nvslab->set_slab(slab);
         return slab;
+    }
+
+    static Slab* slab(TPtr<void> region)
+    {
+        TPtr<nvSlab<Context,TPtr>> nvslab = region;
+        return reinterpret_cast<Slab*>(nvslab->slab());
     }
 
     Slab(TPtr<nvSlab<Context,TPtr>> nvslab)
         : nvslab_(nvslab),
           slab_list_(NULL)
-    { 
-        nvslab->set_slab(this);
-    }
+    { }
 
     void init()
     {   
@@ -305,7 +317,7 @@ public:
         LOG(info) << "Free block: " << "nvslab: " << nvslab_ << " block: " << bid;
         assert(nvslab_->is_free(bid) == false);
         free_list_.push_front(bid);
-        nvslab_->set_free(bid);
+        nvslab_->set_free(ctx, bid);
     }
 
     void stream_to(std::ostream& os) const 

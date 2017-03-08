@@ -25,8 +25,6 @@
 
 namespace alps {
 
-static size_t slab_size = 256*1024LLU;
-
 /**
  * @brief Slab heap organizes slabs in per-sizeclass free lists 
  *
@@ -43,16 +41,20 @@ public:
     typedef ExtentHeap<Context, TPtr, PPtr> ExtentHeapT;
 
 public:
-    SlabHeap()
+    SlabHeap(size_t slabsize)
+        : slabsize_(slabsize)
     { 
-        ASSERT_ND(pthread_mutex_init(&mutex_, NULL) == 0);
+        int err = pthread_mutex_init(&mutex_, NULL);
+        ASSERT_ND(err == 0);
     }
 
-    SlabHeap(SlabHeap* parentslabheap, ExtentHeapT* extentheap)
-        : parentslabheap_(parentslabheap),
+    SlabHeap(size_t slabsize, SlabHeap* parentslabheap, ExtentHeapT* extentheap)
+        : slabsize_(slabsize),
+          parentslabheap_(parentslabheap),
           extentheap_(extentheap)
     {
-
+        int err = pthread_mutex_init(&mutex_, NULL);
+        ASSERT_ND(err == 0);
     }
 
     ErrorCode init()
@@ -61,15 +63,16 @@ public:
             for (typename ExtentHeapT::Iterator it = extentheap_->begin(); 
                  it != extentheap_->end(); ++it) 
             {
-                if ((*it).nvheader()->is_free() && (*it).nvheader()->size() == slab_size) 
+                if ((*it).nvheader()->is_free() && (*it).nvheader()->size() == slabsize_) 
                 {
-                    SlabT* slab = insert_slab(it->nvextent());
+                    SlabT* slab = insert_slab((*it).nvextent());
                     if (!slab) {
                         return kErrorCodeOutofmemory;    
                     }
                 }
             }
         }
+        return kErrorCodeOk;
     }
 
     ErrorCode malloc(Context& ctx, size_t size_bytes, TPtr<void>* ptr)
@@ -95,15 +98,17 @@ public:
         // heap and format it as a slab
         if (!slab && extentheap_) {
             TPtr<void> region;
-            if (extentheap_->malloc(slab_size, &region) == kErrorCodeOk) {
-                SlabT* slab = SlabT::make(region, slab_size, szclass);
-                return slab;
+            if (extentheap_->malloc(ctx, slabsize_, &region) == kErrorCodeOk) {
+                slab = SlabT::make(region, slabsize_, szclass);
+                insert_slab(slab, szclass);
             }
         }
             
         if (slab) {
-            ptr = alloc_block(slab);
+            *ptr = alloc_block(ctx, slab);
         }
+
+        return kErrorCodeOk;
     }
 
     void free(Context& ctx, TPtr<void> ptr) 
@@ -112,12 +117,12 @@ public:
         ErrorCode rc = extentheap_->extent(ptr, &ex);
         ASSERT_ND(rc == kErrorCodeOk);
 
-        SlabT* slab = SlabT::load(ex.nvextent());
+        SlabT* slab = SlabT::slab(ex.nvextent());
 
         // Expect this to finish after a few iterations as a slab that is 
         // moved between two slab heaps eventually ends up in a slabheap
         for (;;) {
-            SlabHeap* owner = slab->owner();
+            SlabHeap* owner = reinterpret_cast<SlabHeap*>(slab->owner());
             if (owner) {
                 owner->lock();
                 if (owner == slab->owner()) {
@@ -130,6 +135,20 @@ public:
         }
     }
 
+    size_t getsize(TPtr<void> ptr) 
+    {
+        Extent<Context, TPtr, PPtr> ex;
+        ErrorCode rc = extentheap_->extent(ptr, &ex);
+        if (rc != kErrorCodeOk) {
+            return 0;
+        }
+        size_t exsz = extentheap_->blocksize() * ex.len(); 
+        if (exsz == slabsize_) {
+            SlabT* slab = SlabT::slab(ex.nvextent());
+            return slab->block_size();
+        }
+        return exsz;
+    }
 
     TPtr<void> alloc_block(Context& ctx, SlabT* slab)
     {
@@ -165,13 +184,13 @@ public:
         }
     }
 
-    SlabT* acquire_slab(int szclass)
+    SlabT* acquire_slab(Context& ctx, int szclass)
     {
         SlabT* slab;
 
         slab = find_slab(szclass);
         if (!slab) {
-            slab = reuse_empty_slab(szclass);
+            slab = reuse_empty_slab(ctx, szclass);
         }
         if (slab) {
             remove_slab(slab);
@@ -180,11 +199,12 @@ public:
 
         if (extentheap_) {
             TPtr<void> region;
-            if (extentheap_->malloc(slab_size, &region) == kErrorCodeOk) {
-                SlabT* slab = SlabT::make(region, slab_size, szclass);
+            if (extentheap_->malloc(ctx, slabsize_, &region) == kErrorCodeOk) {
+                SlabT* slab = SlabT::make(region, slabsize_, szclass);
                 return slab;
             }
         }
+        return NULL;
     }
 
     SlabT* find_slab(const int szclass)
@@ -219,7 +239,7 @@ public:
     void insert_slab(SlabT* slab, int szclass)
     {
         slab->set_owner(this);
-
+        
         int fullness = slab->fullness();
 
         if (slab->empty()) {
@@ -303,17 +323,17 @@ private:
             int fullness = slab->fullness();
             move_slab(slab, szclass, fullness);
             if (slab->sizeclass() != szclass) {
-                slab->reset(slab_size, szclass);
+                slab->reset(slabsize_, szclass);
             }
         }
         return slab;
     }
 
-
 protected:
-    SlabHeap*                parentslabheap_;
-    ExtentHeapT*             extentheap_;
-    pthread_mutex_t          mutex_;
+    size_t            slabsize_;
+    SlabHeap*         parentslabheap_;
+    ExtentHeapT*      extentheap_;
+    pthread_mutex_t   mutex_;
     
     //! completely or partially full slabs
     typename SlabT::SlabList full_slabs_[kSizeClasses][kSlabFullnessBins]; 

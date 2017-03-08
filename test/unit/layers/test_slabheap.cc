@@ -21,6 +21,7 @@
 #include "alps/common/assorted_func.hh"
 
 #include "alps/layers/bits/slab.hh"
+#include "alps/layers/extentheap.hh"
 #include "alps/layers/pointer.hh"
 #include "alps/layers/slabheap.hh"
 
@@ -38,13 +39,16 @@ typedef Slab<Context, TPtr, PPtr> Slab_t;
 
 typedef SlabHeap<Context, TPtr, PPtr> SlabHeap_t;
 
+typedef ExtentHeap<Context, TPtr, PPtr> ExtentHeap_t;
 
 // Test SlabHeap functionality with no extent heap and zone heap for 
 // allocating space for non-volatile slabs. Instead provide a method 
 // that mocks allocation of non-volatile slabs.
 template<template<typename> class TPtr>
 class SlabHeapTestT: public ::testing::Test {
+public:
     const size_t slab_size = 256*1024;  
+
 public:
     template<typename T>
     TPtr<T> alloc(size_t size)
@@ -72,7 +76,7 @@ typedef SlabHeapTestT<TPtr> SlabHeapTest;
 TEST_F(SlabHeapTest, insert)
 {
     Context ctx;
-    SlabHeap_t slabheap;
+    SlabHeap_t slabheap(slab_size);
 
     Slab_t* slab0 = slabheap.insert_slab(alloc_nvslab(ctx, 71, 0));
     Slab_t* slab1 = slabheap.insert_slab(alloc_nvslab(ctx, 71, 1));
@@ -95,6 +99,27 @@ TEST_F(SlabHeapTest, insert)
     
     std::cout << slabheap << std::endl; 
 } 
+
+
+TEST(SlabHeapWithExtentHeapTest, alloc)
+{
+    size_t region_size = 1024*1024;
+    size_t block_log2size = 12; // 4KB
+    const size_t slab_size = 1 << block_log2size;
+    Context ctx;
+    TPtr<void> region = malloc(region_size);
+
+    ExtentHeap_t* exheap = ExtentHeap_t::make(region, region_size, block_log2size);
+    EXPECT_NE((void*) 0, exheap);
+
+    SlabHeap_t slabheap(slab_size, NULL, exheap);
+
+    TPtr<void> ptr[16];
+
+    EXPECT_EQ(kErrorCodeOk, slabheap.malloc(ctx, slab_size / 4, &ptr[0]));
+    slabheap.free(ctx, ptr[0]);
+
+}
 
 
 int main(int argc, char** argv)

@@ -32,22 +32,50 @@ class HybridHeap
 {
 public:
 
-    ErrorCode malloc(Context& ctx, size_t size_bytes, TPtr<void>* ptr)
-    {
+    HybridHeap(size_t bigsize, SmallHeap* sh, BigHeap* bh)
+        : bigsize_(bigsize),
+          sh_(sh),
+          bh_(bh)
+    { }
 
+    ErrorCode malloc(Context& ctx, size_t size, TPtr<void>* ptr)
+    {
+        ErrorCode rc;
+
+        if (size < bigsize_) {
+            rc = sh_->malloc(ctx, size, ptr);
+        } else {
+            rc = bh_->malloc(ctx, size, ptr);
+        }
+
+        return rc;
     }
 
     void free(Context& ctx, TPtr<void> ptr) 
     {
-
+        if (sh_->getsize(ptr) < bigsize_) {
+            return sh_->free(ctx, ptr);
+        } else {
+            return bh_->free(ctx, ptr);
+        }
     }
  
+    size_t getsize(TPtr<void> ptr) 
+    {
+        size_t size = sh_->getsize(ptr);
+        if (size >= bigsize_) {
+            size = bh_->getsize(ptr);
+        }
+        return size;
+    }
+
 protected:
-    SmallHeap sh_;
-    BigHeap bh_;
+    size_t bigsize_;
+    SmallHeap* sh_;
+    BigHeap* bh_;
 };
 
 } // namespace alps
 
 
-#endif _ALPS_LAYER_HYBRIDHEAP_HH_
+#endif // _ALPS_LAYER_HYBRIDHEAP_HH_

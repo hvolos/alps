@@ -38,10 +38,34 @@ typedef SlabHeap<Context, TPtr, PPtr> SlabHeap_t;
 typedef ExtentHeap<Context, TPtr, PPtr> ExtentHeap_t;
 typedef HybridHeap<Context, TPtr, PPtr, SlabHeap_t, ExtentHeap_t> HybridHeap_t;
 
-TEST(HybridHeapTest, alloc)
+size_t region_size = 1024*1024;
+size_t block_log2size = 13; // 4KB
+
+TEST(HybridHeapTest, alloc_free)
 {
     Context ctx;
-    SlabHeap_t slabheap;
+
+    size_t slabsize = 1 << block_log2size ;
+    size_t bigsize = slabsize;
+
+    TPtr<void> region = malloc(region_size);
+
+    ExtentHeap_t* exheap = ExtentHeap_t::make(region, region_size, block_log2size);
+ 
+    SlabHeap_t slheap(slabsize, NULL, exheap);
+    slheap.init();
+
+    HybridHeap_t hheap(bigsize, &slheap, exheap);
+
+    TPtr<void> ptr[16];
+    EXPECT_EQ(kErrorCodeOk, hheap.malloc(ctx, bigsize*2, &ptr[0]));
+    EXPECT_EQ(bigsize*2, hheap.getsize(ptr[0]));
+
+    EXPECT_EQ(kErrorCodeOk, hheap.malloc(ctx, bigsize/4, &ptr[1]));
+    EXPECT_EQ(bigsize/4, hheap.getsize(ptr[1]));
+
+    hheap.free(ctx, ptr[0]);
+    hheap.free(ctx, ptr[1]);
 } 
 
 

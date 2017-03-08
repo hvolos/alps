@@ -80,11 +80,16 @@ public:
     }
 
 //protected:
-    /** Block type */
-    uint8_t  type_;
+    union {
+        struct {
+            /** Block type */
+            uint8_t  type_;
 
-    /** Extent size in number of blocks */
-    uint32_t size_;
+            /** Extent size in number of blocks */
+            uint32_t size_;
+        };
+        uint8_t u8_[64];
+    };
 };
 
 template<typename Context, template<typename> class TPtr, template<typename> class PPtr>
