@@ -22,8 +22,7 @@
 
 #include "alps/common/assert_nd.hh"
 #include "alps/common/assorted_func.hh"
-
-#include "debug.hh"
+#include "alps/common/debug.hh"
 
 namespace alps {
 void ErrorStack::output(std::ostream* ptr) const {

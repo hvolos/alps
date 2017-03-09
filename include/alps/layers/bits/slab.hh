@@ -26,10 +26,10 @@
 #include <list>
 #include <iostream>
 
-#include "common/debug.hh"
+#include "alps/common/debug.hh"
 #include "alps/layers/bits/bitmap.hh"
 
-#include "globalheap/size_class.hh"
+#include "size_class.hh"
 
 
 namespace alps {
@@ -51,7 +51,7 @@ struct nvSlabHeader {
         return sizeof(header_size) + sizeof(sizeclass) + sizeof(nblocks) + sizeof(void*);
     }
 
-    static TPtr<nvSlabHeader> make(TPtr<nvSlabHeader> header, size_t slab_size, int size_class)
+    static TPtr<nvSlabHeader> make(Context& ctx, TPtr<nvSlabHeader> header, size_t slab_size, int size_class)
     {
         size_t block_size = size_from_class(size_class);
         size_t nblocks = max_nblocks(slab_size, block_size);
@@ -61,7 +61,7 @@ struct nvSlabHeader {
         // Adjust (reduce) number of blocks to accomodate extra space needed 
         // for roundup
         header->nblocks = (slab_size - header->header_size) / block_size;
-        nvBitMap<Context>::make(nblocks, &header->block_map);
+        nvBitMap<Context>::make(ctx, nblocks, &header->block_map);
         //persist((void*)&header, sizeof(nvSlabHeader));
         //persist((void*)&header->block_map, nvBitMap::size_of(nblocks));
         return header;
@@ -93,10 +93,10 @@ struct nvSlab
 {
     nvSlabHeader<Context, TPtr> header;    // Variable-size header
 
-    static TPtr<nvSlab> make(TPtr<void> region, size_t slab_size, int size_class)
+    static TPtr<nvSlab> make(Context& ctx, TPtr<void> region, size_t slab_size, int size_class)
     {
         TPtr<nvSlab> nvslab = region;
-        nvSlabHeader<Context, TPtr>::make(&nvslab->header, slab_size, size_class);
+        nvSlabHeader<Context, TPtr>::make(ctx, &nvslab->header, slab_size, size_class);
         assert(nvslab->block_offset(nvslab->nblocks()) <= slab_size);
         return nvslab;
     }
@@ -124,10 +124,10 @@ struct nvSlab
         return (TPtr<char>((char*)ptr.get()) - TPtr<char>((char*)block0.get())) / block_size();
     }
 
-    bool is_free(size_t block_idx) 
+    bool is_free(Context& ctx, size_t block_idx) 
     {
         assert(block_idx < nblocks());
-        return !header.block_map.is_set(block_idx);
+        return !header.block_map.is_set(ctx, block_idx);
     }
 
     void set_alloc(Context& ctx, size_t block_idx)
@@ -181,20 +181,20 @@ public:
     typedef std::list<Slab*> SlabList;
 
 public:
-    static Slab* make(TPtr<void> region, size_t slab_size, size_t size_class)
+    static Slab* make(Context& ctx, TPtr<void> region, size_t slab_size, size_t size_class)
     {
-        TPtr<nvSlab<Context, TPtr>> nvslab = nvSlab<Context, TPtr>::make(region, slab_size, size_class);
+        TPtr<nvSlab<Context, TPtr>> nvslab = nvSlab<Context, TPtr>::make(ctx, region, slab_size, size_class);
         Slab* slab = new Slab(nvslab);
-        slab->init();
+        slab->init(ctx);
         nvslab->set_slab(slab);
         return slab;
     }
 
-    static Slab* load(TPtr<void> region)
+    static Slab* load(Context& ctx, TPtr<void> region)
     {
         TPtr<nvSlab<Context,TPtr>> nvslab = region;
         Slab* slab = new Slab(nvslab);
-        slab->init();
+        slab->init(ctx);
         nvslab->set_slab(slab);
         return slab;
     }
@@ -210,22 +210,22 @@ public:
           slab_list_(NULL)
     { }
 
-    void init()
+    void init(Context& ctx)
     {   
         if (block_size()) {
             free_list_.clear();
             for (size_t i=0; i<nblocks(); i++) {
-                if (nvslab_->is_free(i)) {
+                if (nvslab_->is_free(ctx, i)) {
                     free_list_.push_back(i);
                 }
             }
         }
     }
 
-    void reset(size_t slab_size, int szclass)
+    void reset(Context& ctx, size_t slab_size, int szclass)
     {   
-        nvSlab<Context,TPtr>::make(nvslab_, slab_size, szclass);
-        init();
+        nvSlab<Context,TPtr>::make(ctx, nvslab_, slab_size, szclass);
+        init(ctx);
     }
 
     int sizeclass() const 
@@ -315,9 +315,13 @@ public:
         size_t bid = nvslab_->block_id(ptr);
 
         LOG(info) << "Free block: " << "nvslab: " << nvslab_ << " block: " << bid;
-        assert(nvslab_->is_free(bid) == false);
-        free_list_.push_front(bid);
-        nvslab_->set_free(ctx, bid);
+        if (ctx.do_v) {
+            free_list_.push_front(bid);
+        }
+        if (ctx.do_nv) {
+            assert(nvslab_->is_free(ctx, bid) == false);
+            nvslab_->set_free(ctx, bid);
+        }
     }
 
     void stream_to(std::ostream& os) const 

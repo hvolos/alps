@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "log.hh"
+#include "alps/common/log.hh"
 
 #include <boost/log/core/core.hpp>
 #include <boost/log/expressions/formatters/date_time.hpp>

@@ -19,49 +19,54 @@
 #include "gtest/gtest.h"
 #include "alps/layers/bits/bitmap.hh"
 
-class Context {
+#include "test_layers_common.hh"
 
-};
+using namespace alps;
 
 typedef nvBitMap<Context> nvBitMap_t;
 
-void test_make(int bitmap_len)
+void test_make(Context& ctx, int bitmap_len)
 {
     char buf[64];
   
     // set all buffer bits to one 
     memset(buf, 0xff, sizeof(buf));
 
-    nvBitMap_t* bm = nvBitMap_t::make(bitmap_len, buf);
+    nvBitMap_t* bm = nvBitMap_t::make(ctx, bitmap_len, buf);
 
     for (int i=0; i<bitmap_len; i++) {
-        EXPECT_EQ(0, bm->is_set(i));
+        EXPECT_EQ(0, bm->is_set(ctx, i));
     }
 }
 
 TEST(BitMap, make_len4)
 {
-    test_make(4);
+    Context ctx;
+    test_make(ctx, 4);
 }
 
 TEST(BitMap, make_len8)
 {
-    test_make(8);
+    Context ctx;
+    test_make(ctx, 8);
 }
 
 TEST(BitMap, make_len12)
 {
-    test_make(12);
+    Context ctx;
+    test_make(ctx, 12);
 }
 
 TEST(BitMap, make_len16)
 {
-    test_make(16);
+    Context ctx;
+    test_make(ctx, 16);
 }
 
 TEST(BitMap, make_len256)
 {
-    test_make(256);
+    Context ctx;
+    test_make(ctx, 256);
 }
 
 TEST(BitMap, set)
@@ -70,11 +75,11 @@ TEST(BitMap, set)
     char buf[64];
     int bitmap_len = 256;
 
-    nvBitMap_t* bm = nvBitMap_t::make(bitmap_len, buf);
+    nvBitMap_t* bm = nvBitMap_t::make(ctx, bitmap_len, buf);
   
     for (int i=0; i<bitmap_len; i++) {
         bm->set(ctx, i);
-        EXPECT_EQ(1, bm->is_set(i));
+        EXPECT_EQ(1, bm->is_set(ctx, i));
     }
 }
 
@@ -83,16 +88,16 @@ void test_clear(int bitmap_len)
     Context ctx;
     char buf[64];
   
-    nvBitMap_t* bm = nvBitMap_t::make(bitmap_len, buf);
+    nvBitMap_t* bm = nvBitMap_t::make(ctx, bitmap_len, buf);
 
     for (int i=0; i<bitmap_len; i++) {
         bm->set(ctx, i);
-        EXPECT_EQ(1, bm->is_set(i));
+        EXPECT_EQ(1, bm->is_set(ctx, i));
     }
  
     for (int i=0; i<bitmap_len; i++) {
         bm->clear(ctx, i);
-        EXPECT_EQ(0, bm->is_set(i));
+        EXPECT_EQ(0, bm->is_set(ctx, i));
     }
 }
 

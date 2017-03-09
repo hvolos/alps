@@ -38,7 +38,7 @@
 #include "boost/filesystem/path.hpp"
 #include "boost/filesystem/operations.hpp"
 
-#include "debug.hh"
+#include "alps/common/debug.hh"
 
 namespace alps {
 

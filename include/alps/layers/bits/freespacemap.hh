@@ -23,7 +23,7 @@
 #include "alps/common/error_code.hh"
 #include "alps/common/error_stack.hh"
 
-#include "common/debug.hh"
+#include "alps/common/debug.hh"
 
 
 #include "alps/layers/bits/extentinterval.hh"

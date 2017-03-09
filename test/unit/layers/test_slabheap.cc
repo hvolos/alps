@@ -27,11 +27,9 @@
 
 #include "test_common.hh"
 
+#include "test_layers_common.hh"
+
 using namespace alps;
-
-class Context {
-
-};
 
 typedef nvSlab<Context,TPtr> nvSlab_t;
 
@@ -58,7 +56,7 @@ public:
 
     TPtr<nvSlab_t> alloc_nvslab(Context& ctx, int block_sizeclass, unsigned int perc_full) {
         TPtr<nvSlab_t> nvslab = alloc<nvSlab_t>(slab_size);
-        nvSlab_t::make(nvslab, slab_size, block_sizeclass);
+        nvSlab_t::make(ctx, nvslab, slab_size, block_sizeclass);
         for (size_t i=0, nalloc=0; i<nvslab->nblocks(); i++) {
             if (100*nalloc/nvslab->nblocks() < perc_full) {
                 nvslab->set_alloc(ctx, i);
@@ -78,10 +76,10 @@ TEST_F(SlabHeapTest, insert)
     Context ctx;
     SlabHeap_t slabheap(slab_size);
 
-    Slab_t* slab0 = slabheap.insert_slab(alloc_nvslab(ctx, 71, 0));
-    Slab_t* slab1 = slabheap.insert_slab(alloc_nvslab(ctx, 71, 1));
-    Slab_t* slab2 = slabheap.insert_slab(alloc_nvslab(ctx, 71, 50));
-    Slab_t* slab3 = slabheap.insert_slab(alloc_nvslab(ctx, 71, 99));
+    Slab_t* slab0 = slabheap.insert_slab(ctx, alloc_nvslab(ctx, 71, 0));
+    Slab_t* slab1 = slabheap.insert_slab(ctx, alloc_nvslab(ctx, 71, 1));
+    Slab_t* slab2 = slabheap.insert_slab(ctx, alloc_nvslab(ctx, 71, 50));
+    Slab_t* slab3 = slabheap.insert_slab(ctx, alloc_nvslab(ctx, 71, 99));
 
     UNUSED_ND(slab0);
     UNUSED_ND(slab1);

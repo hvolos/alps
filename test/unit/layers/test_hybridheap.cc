@@ -27,12 +27,9 @@
 #include "alps/layers/hybridheap.hh"
 
 #include "test_common.hh"
+#include "test_layers_common.hh"
 
 using namespace alps;
-
-class Context {
-
-};
 
 typedef SlabHeap<Context, TPtr, PPtr> SlabHeap_t;
 typedef ExtentHeap<Context, TPtr, PPtr> ExtentHeap_t;
@@ -53,7 +50,7 @@ TEST(HybridHeapTest, alloc_free)
     ExtentHeap_t* exheap = ExtentHeap_t::make(region, region_size, block_log2size);
  
     SlabHeap_t slheap(slabsize, NULL, exheap);
-    slheap.init();
+    slheap.init(ctx);
 
     HybridHeap_t hheap(bigsize, &slheap, exheap);
 

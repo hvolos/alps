@@ -26,12 +26,13 @@ struct nvBitMap {
 
     uint8_t  bv_[0];
 
-    static nvBitMap* make(size_t length, void* ptr)
+    static nvBitMap* make(Context& ctx, size_t length, void* ptr)
     {
         nvBitMap* bm = static_cast<nvBitMap*>(ptr);
         // we have at least one entry
         for (unsigned int i=0; i<size_of(length); i++) {
-            bm->bv_[i] = 0;
+            uint8_t tmp = 0;
+            ctx.store(&tmp, &bm->bv_[i], sizeof(bm->bv_[i]));
         }
         return bm;  
     } 
@@ -62,17 +63,28 @@ struct nvBitMap {
 
     void clear(Context& ctx, int bit_index) 
     {
-        bv_[elt(bit_index)] = bv_[elt(bit_index)] & ~mask(bit_index);
+        // bv_[elt(bit_index)] = bv_[elt(bit_index)] & ~mask(bit_index);
+        uint8_t tmp;
+        ctx.load(&bv_[elt(bit_index)], &tmp, sizeof(bv_[elt(bit_index)]));
+        tmp = tmp & ~mask(bit_index);
+        ctx.store(&tmp, &bv_[elt(bit_index)], sizeof(bv_[elt(bit_index)]));
     }
 
     void set(Context& ctx, int bit_index) 
     {
-        bv_[elt(bit_index)] = bv_[elt(bit_index)] | mask(bit_index);  
+        // bv_[elt(bit_index)] = bv_[elt(bit_index)] | mask(bit_index);  
+        uint8_t tmp;
+        ctx.load(&bv_[elt(bit_index)], &tmp, sizeof(bv_[elt(bit_index)]));
+        tmp = tmp | mask(bit_index);
+        ctx.store(&tmp, &bv_[elt(bit_index)], sizeof(bv_[elt(bit_index)]));
     }
 
-    bool is_set(int bit_index) 
+    bool is_set(Context& ctx, int bit_index) 
     {
-        return (bv_[elt(bit_index)] & mask(bit_index)) != 0;
+        //return (bv_[elt(bit_index)] & mask(bit_index)) != 0;
+        uint8_t tmp;
+        ctx.load(&bv_[elt(bit_index)], &tmp, sizeof(bv_[elt(bit_index)]));
+        return (tmp & mask(bit_index)) != 0;
     }
 };
 

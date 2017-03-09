@@ -57,7 +57,7 @@ public:
         ASSERT_ND(err == 0);
     }
 
-    ErrorCode init()
+    ErrorCode init(Context& ctx)
     {
         if (extentheap_) {
             for (typename ExtentHeapT::Iterator it = extentheap_->begin(); 
@@ -65,7 +65,7 @@ public:
             {
                 if ((*it).nvheader()->is_free() && (*it).nvheader()->size() == slabsize_) 
                 {
-                    SlabT* slab = insert_slab((*it).nvextent());
+                    SlabT* slab = insert_slab(ctx, (*it).nvextent());
                     if (!slab) {
                         return kErrorCodeOutofmemory;    
                     }
@@ -99,7 +99,7 @@ public:
         if (!slab && extentheap_) {
             TPtr<void> region;
             if (extentheap_->malloc(ctx, slabsize_, &region) == kErrorCodeOk) {
-                slab = SlabT::make(region, slabsize_, szclass);
+                slab = SlabT::make(ctx, region, slabsize_, szclass);
                 insert_slab(slab, szclass);
             }
         }
@@ -200,7 +200,7 @@ public:
         if (extentheap_) {
             TPtr<void> region;
             if (extentheap_->malloc(ctx, slabsize_, &region) == kErrorCodeOk) {
-                SlabT* slab = SlabT::make(region, slabsize_, szclass);
+                SlabT* slab = SlabT::make(ctx, region, slabsize_, szclass);
                 return slab;
             }
         }
@@ -226,11 +226,11 @@ public:
         return slab;
     }
 
-    SlabT* insert_slab(TPtr<nvSlab<Context,TPtr>> nvslab)
+    SlabT* insert_slab(Context& ctx, TPtr<nvSlab<Context,TPtr>> nvslab)
     {
         LOG(info) << "Insert slab: " << nvslab;
 
-        SlabT* slab = SlabT::load(nvslab);
+        SlabT* slab = SlabT::load(ctx, nvslab);
         insert_slab(slab, nvslab->sizeclass());
         return slab;
     }
@@ -323,7 +323,7 @@ private:
             int fullness = slab->fullness();
             move_slab(slab, szclass, fullness);
             if (slab->sizeclass() != szclass) {
-                slab->reset(slabsize_, szclass);
+                slab->reset(ctx, slabsize_, szclass);
             }
         }
         return slab;

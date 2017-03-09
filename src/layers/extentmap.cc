@@ -21,10 +21,9 @@
 
 #include <map>
 
+#include "alps/common/debug.hh"
 #include "alps/common/error_code.hh"
 #include "alps/layers/bits/extentinterval.hh"
-
-#include "common/debug.hh"
 
 namespace alps {
 

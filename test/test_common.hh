@@ -36,9 +36,9 @@
 #include "alps/common/error_code.hh"
 #include "alps/common/error_stack.hh"
 #include "alps/common/externalizable.hh"
+#include "alps/common/log.hh"
 
 #include "common/os.hh"
-#include "common/log.hh"
 
 namespace alps {
 
