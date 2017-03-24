@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "globalheap/size_class.hh"
+#include "sizeclass.hh"
 
 namespace alps {
 

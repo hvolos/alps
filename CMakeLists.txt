@@ -67,7 +67,7 @@ include_directories(${PROJECT_SOURCE_DIR}/third-party/libbacktrace)
 add_subdirectory(src)
 
 # examples source
-#add_subdirectory(examples)
+add_subdirectory(examples)
 
 # testing
 enable_testing()

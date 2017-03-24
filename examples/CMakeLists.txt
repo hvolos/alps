@@ -26,5 +26,3 @@ endfunction()
 function (add_alps_example targetname)
   add_alps_example2(${targetname} ${targetname} ${targetname})
 endfunction()
-
-add_subdirectory(globalheap)

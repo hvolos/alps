@@ -25,7 +25,6 @@
 #include "alps/common/assorted_func.hh"
 #include "alps/common/error_code.hh"
 #include "alps/common/error_stack.hh"
-#include "alps/globalheap/memattrib.hh"
 #include "alps/layers/bits/extentinterval.hh"
 #include "alps/layers/bits/freespacemap.hh"
 #include "alps/layers/bits/nvextentheap.hh"

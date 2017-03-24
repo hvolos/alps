@@ -54,7 +54,5 @@ endfunction()
 
 
 add_subdirectory(common)
-#add_subdirectory(globalheap)
-#add_subdirectory(l4tm)
 #add_subdirectory(pegasus)
 add_subdirectory(layers)

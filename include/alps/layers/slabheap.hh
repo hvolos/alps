@@ -78,6 +78,8 @@ public:
     ErrorCode malloc(Context& ctx, size_t size_bytes, TPtr<void>* ptr)
     {
         const int szclass = sizeclass(size_bytes);
+
+        lock(); 
         SlabT* slab = find_slab(szclass);
 
         // No slab of requested sizeclass, so try to reuse an empty one.
@@ -107,6 +109,7 @@ public:
         if (slab) {
             *ptr = alloc_block(ctx, slab);
         }
+        unlock(); 
 
         return kErrorCodeOk;
     }
@@ -188,12 +191,14 @@ public:
     {
         SlabT* slab;
 
+        lock();
         slab = find_slab(szclass);
         if (!slab) {
             slab = reuse_empty_slab(ctx, szclass);
         }
         if (slab) {
             remove_slab(slab);
+            unlock();
             return slab;
         }
 
@@ -201,9 +206,11 @@ public:
             TPtr<void> region;
             if (extentheap_->malloc(ctx, slabsize_, &region) == kErrorCodeOk) {
                 SlabT* slab = SlabT::make(ctx, region, slabsize_, szclass);
+                unlock();
                 return slab;
             }
         }
+        unlock();
         return NULL;
     }
 

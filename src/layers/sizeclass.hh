@@ -14,36 +14,31 @@
  * limitations under the License.
  */
 
-#ifndef _ALPS_GLOBALHEAP_PROCESS_SLAB_HEAP_HH_
-#define _ALPS_GLOBALHEAP_PROCESS_SLAB_HEAP_HH_
+#ifndef _ALPS_SIZECLASS_HH_
+#define _ALPS_SIZECLASS_HH_
 
-#include <pthread.h>
-
-#include "alps/pegasus/relocatable_region.hh"
-#include "globalheap/slab_heap.hh"
-#include "globalheap/extentheap.hh"
+#include <sys/types.h>
 
 namespace alps {
 
+const int kSizeClasses = 116;
 
-/**
- * @brief Central per-process slab heap 
- */
-class ProcessSlabHeap: public SlabHeap 
+extern size_t size_table[kSizeClasses];
+
+inline int sizeclass(size_t sz)
 {
-public:
-    ProcessSlabHeap(ExtentHeap* extentheap)
-        : SlabHeap(extentheap)
-    { }
+    int sizeclass = 0;
+    while (size_table[sizeclass] < sz) {
+        sizeclass++;
+    }
+    return sizeclass;
+}
 
-    /**
-     * @brief Returns a slab that supports sizeclass \a szclass.
-     */
-    Slab* acquire_slab(int szclass);
-    RRegion::TPtr<void> malloc(size_t size);
-    void free(RRegion::TPtr<void> ptr);
-};
+inline size_t size_from_class(const int sizeclass)
+{
+    return size_table[sizeclass];
+}
 
 } // namespace alps
 
-#endif // _ALPS_GLOBALHEAP_PROCESS_SLAB_HEAP_HH_
+#endif // _ALPS_SIZECLASS_HH_
