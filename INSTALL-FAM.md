@@ -9,8 +9,7 @@ built into directory $ALPS_BUILD.
 ## Dependencies
 
 * We assume Linux OS. Testing has been done on L4TM 4.3.0-3 running on the
-[FAME](https://hlinux-web.us.rdlabs.hpecorp.net/dokuwiki/doku.php/l4tm:qemu_fabric_experience) emulator. To get access to a machine running L4TM such as build-l4tm-X.u.labs.hpecorp.net, 
-please email Robert Chapman (<robert.chapman@hpe.com>).
+[FAME](https://hlinux-web.us.rdlabs.hpecorp.net/dokuwiki/doku.php/l4tm:qemu_fabric_experience) emulator. 
 * We assume modern C/C++ compilers in the build environment that must 
   support C/C++11. Testing has been done with gcc version 4.9.2 or later. 
 * We use the CMake family of build tools. Testing has been done with cmake version 3.0.2 or later.
