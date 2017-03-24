@@ -1,98 +1,66 @@
-[//]: # ( (c) Copyright 2016 Hewlett Packard Enterprise Development LP             )
-[//]: # (                                                                          )
-[//]: # ( Licensed under the Apache License, Version 2.0 (the "License");          )
-[//]: # ( you may not use this file except in compliance with the License.         )
-[//]: # ( You may obtain a copy of the License at                                  )
-[//]: # (                                                                          )
-[//]: # (     http://www.apache.org/licenses/LICENSE-2.0                           )
-[//]: # (                                                                          )
-[//]: # ( Unless required by applicable law or agreed to in writing, software      )
-[//]: # ( distributed under the License is distributed on an "AS IS" BASIS,        )
-[//]: # ( WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. )
-[//]: # ( See the License for the specific language governing permissions and      )
-[//]: # ( limitations under the License.                                           )
-
-
-# Alps
+# ALPS
 
 ![Alps](doc/figures/alps-logo.png)
 
-Alps (Allocator for Persistent Shared memory) provides a low-level 
-abstraction layer that reliefs the user from the details of mapping, 
+ALPS (Allocator Layers for Persistent Shared memory) provides low-level
+abstraction layers that relief the user from the details of mapping,
 addressing, and allocating persistent shared memory.
-This layer can be used as a building block for building higher level 
-abstractions and data structures such as heaps, logs, etc.
+These layers can be used as building blocks for building higher-level 
+memory allocators such as persistent heaps.
+Shared persistent memory refers to non-volatile memory shared among
+multiple compute nodes and can take different forms, such as
+disaggregated non-volatile memory accessible over a fabric (also
+known as fabric-attached memory or FAM) or multi-socket non-volatile
+memory.
 
-## Building Alps
+## Supported Platforms
 
-```
-$ cd $ALPS
-$ mkdir build
-$ cd build
-```
+ALPS only supports Linux at the moment.
 
-### Building Alps for NUMA
+## Quick Start Guide
 
-For Debug build type (default):
+This section provides a quick introduction to setting up and testing
+ALPS on a CC-NUMA machine.
+We assume the ALPS source code is already deployed in directory $ALPS.
 
-```
-$ cmake .. -DTARGET_ARCH_MEM=CC-NUMA -DCMAKE_BUILD_TYPE=Debug
-$ make
-```
+1. Change into the ALPS source directory:
 
-For Release build type:
+ ```
+ $ cd $ALPS
+ ```
 
-```
-$ cmake .. -DTARGET_ARCH_MEM=CC-NUMA -DCMAKE_BUILD_TYPE=Release
-$ make
-```
+2. Install dependencies:
 
-## Installing Alps
+ ```
+ $ ./install-dep
+ ```
 
-To install in default location:
+3. Build ALPS
 
-```
-$ make install
-```
+ ```
+ $ mkdir build
+ $ cd build
+ $ cmake .. -DTARGET_ARCH_MEM=CC-NUMA
+ $ make
+ ```
 
-To install in custom location: 
+4. Run unit tests against:
 
-```
-$ make DESTDIR=MY_CUSTOM_LOCATION install
-```
+ ```
+ ctest
+ ```
 
-## Installing Dependencies
+## Installation
 
-To install necessary packages:
+Instructions for building and installing ALPS on different platforms and
+environments is available on a platform by platform basis:
 
-```
-./install-dep
-```
+* [CC-NUMA](INSTALL-NUMA.md): Linux platform on Cache-Coherent Non-Uniform Memory
+Access (CC-NUMA) architecture
 
 ## Example Programs
 
 Alps comes with several samples in the `examples` directory.
-
-
-## Configuring Environment
-
-Alps initializes its internals by loading configuration options 
-in the following order: 
-* Load options from a system-wide configuration file: /etc/default/alps.[yml|yaml],
-* Load options from the file referenced by the value of the environment variable ALPS_CONF, and
-* Load options through a user-defined configuration file or object (passed through the Alps API)
-
-## Running Tests
-
-Testing requires building Alps first. Once Alps, is built, 
-unit tests can be run using CTest.
-
-### TMPFS
-
-To run unit tests against tmpfs (located at: /dev/shm):
-```
-ctest -R tmpfs
-```
 
 ## Style Guide 
 
