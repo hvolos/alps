@@ -1,100 +1,108 @@
-[//]: # ( (c) Copyright 2016 Hewlett Packard Enterprise Development LP             )
-[//]: # (                                                                          )
-[//]: # ( Licensed under the Apache License, Version 2.0 (the "License");          )
-[//]: # ( you may not use this file except in compliance with the License.         )
-[//]: # ( You may obtain a copy of the License at                                  )
-[//]: # (                                                                          )
-[//]: # (     http://www.apache.org/licenses/LICENSE-2.0                           )
-[//]: # (                                                                          )
-[//]: # ( Unless required by applicable law or agreed to in writing, software      )
-[//]: # ( distributed under the License is distributed on an "AS IS" BASIS,        )
-[//]: # ( WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. )
-[//]: # ( See the License for the specific language governing permissions and      )
-[//]: # ( limitations under the License.                                           )
+# ALPS
 
+![ALPS](doc/figures/alps-logo.png)
 
-# Alps
+ALPS (Allocator for Persistent Shared memory) provides a low-level
+abstraction layer that reliefs the user from the details of mapping,
+addressing, and allocating persistent shared memory
+Shared persistent memory refers to non-volatile memory shared among
+multiple compute nodes and can take different forms, such as
+disaggregated non-volatile memory accessible over a fabric (also
+known as fabric-attached memory or FAM) or multi-socket non-volatile
+memory.
 
-![Alps](doc/figures/alps-logo.png)
+The main abstraction provided by ALPS is a Global Symmetric Heap that
+lets users allocate variable-size chunks of persistent memory through
+the familiar `malloc()/free()` interface that can be shared among
+multiple concurrent processes.  For example, we extended Spark with
+an optimized in-memory shuffle implementation where workers produce
+and consume data directly from the shared heap instead of exchanging
+data through network I/O.
 
-Alps (Allocator for Persistent Shared memory) provides a low-level 
-abstraction layer that reliefs the user from the details of mapping, 
-addressing, and allocating persistent shared memory.
-This layer can be used as a building block for building higher level 
-abstractions and data structures such as heaps, logs, etc.
+## Quick Start Guide
 
-## Building Alps
+This section provides a quick introduction to setting up and testing
+ALPS on a CC-NUMA machine.
+We assume the ALPS source code is already deployed in directory $ALPS.
+
+1. Change into the ALPS source directory:
+
+ ```
+ $ cd $ALPS
+ ```
+
+2. Install dependencies:
+
+ ```
+ $ ./install-dep
+ ```
+
+3. Build ALPS
+
+ ```
+ $ mkdir build
+ $ cd build
+ $ cmake .. -DTARGET_ARCH_MEM=CC-NUMA
+ $ make
+ ```
+
+4. Run unit tests against tmpfs (located at: /dev/shm):
+
+ ```
+ ctest -R tmpfs
+ ```
+
+## Installation
+
+Instructions for building and installing ALPS on different platforms and
+environments is available on a platform by platform basis:
+
+* [CC-NUMA](INSTALL-NUMA.md): Linux platform on Cache-Coherent Non-Uniform Memory
+Access (CC-NUMA) architecture
+* [FAM](INSTALL-FAM.md): Linux for The Machine (L4TM) on Fabric-Attached Memory (FAM)
+architecture
+
+## Usage
+
+The interface exposes a _shared heap_ abstraction that provides users
+with a shared heap memory allocator.  The allocator lets users
+allocate variable-size chunks of physically shared memory through the
+familiar `malloc()/free()` interface.  We extend the `malloc`
+interface to take an extra memory-attributes argument that can be
+used to provide to the allocator a hint about the desirable
+properties of the allocated memory.  For example, a user can use this
+hint to express locality requirements by stating the NUMA node to
+allocate memory from:
 
 ```
-$ cd $ALPS
-$ mkdir build
-$ cd build
+void* malloc(size_t size, int numa_node_hint);
 ```
 
-### Building Alps for NUMA
+The allocator interface uses relocatable base-relative C++ smart
+pointers for logically addressing (naming) allocated blocks.  In
+contrast to virtual addresses, our pointers are relocatable meaning
+that the shared heap does not have to be memory mapped into the same
+virtual address range in each process using the heap.  Instead, a
+logical address represents an offset relative to the base of the
+virtual address region that maps the shared heap so that the heap can
+be memory mapped to different virtual address regions in each
+process.
 
-For Debug build type (default):
+The interface also provides support for fault tolerance necessary to
+big-data analytic frameworks.  When opening a heap, a user can ask
+for a generation number identifying the current instance of the heap.
+Blocks associated with a generation number can be released in two
+ways: (1) explicit call to free the memory block, or (2) a bulk-free
+call that frees all the blocks associated with a given generation.
+Deallocating memory through a bulk-free is useful for releasing
+memory when recovering from a crash.
 
-```
-$ cmake .. -DTARGET_ARCH_MEM=CC-NUMA -DCMAKE_BUILD_TYPE=Debug
-$ make
-```
-
-For Release build type:
-
-```
-$ cmake .. -DTARGET_ARCH_MEM=CC-NUMA -DCMAKE_BUILD_TYPE=Release
-$ make
-```
-
-## Installing Alps
-
-To install in default location:
-
-```
-$ make install
-```
-
-To install in custom location: 
-
-```
-$ make DESTDIR=MY_CUSTOM_LOCATION install
-```
-
-## Installing Dependencies
-
-To install necessary packages:
-
-```
-./install-dep
-```
 
 ## Example Programs
 
-Alps comes with several samples in the `examples` directory.
+ALPS comes with several samples in the `examples` directory.
 
-
-## Configuring Environment
-
-Alps initializes its internals by loading configuration options 
-in the following order: 
-* Load options from a system-wide configuration file: /etc/default/alps.[yml|yaml],
-* Load options from the file referenced by the value of the environment variable ALPS_CONF, and
-* Load options through a user-defined configuration file or object (passed through the Alps API)
-
-## Running Tests
-
-Testing requires building Alps first. Once Alps, is built, 
-unit tests can be run using CTest.
-
-### TMPFS
-
-To run unit tests against tmpfs (located at: /dev/shm):
-```
-ctest -R tmpfs
-```
-
-## Style Guide 
+## Style Guide
 
 We follow the Google C++ style guide available here:
 

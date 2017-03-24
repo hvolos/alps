@@ -53,7 +53,7 @@ distribution() {
 install_l4tm() {
   printf "${GREEN}Installing L4TM packages... ${NC}\n"
 
-  sudo apt-get install \
+  sudo apt-get install -y \
     cmake \
     libattr1-dev \
     libboost-all-dev \
@@ -68,11 +68,27 @@ install_l4tm() {
     libyaml-cpp-dev
 }
 
+# Installs Ubuntu packages
+install_ubuntu() {
+  printf "${GREEN}Installing Ubuntu packages... ${NC}\n"
+
+  sudo apt-get install -y \
+    cmake \
+    libattr1-dev \
+    libboost-all-dev \
+    libevent-dev \
+    libnuma1 \
+    libnuma-dev \
+    libyaml-cpp-dev
+}
+
+
+
 
 # Installs RedHat packages
 install_redhat() {
   printf "${GREEN}Installing RedHat packages... ${NC}\n"
-  printf "${RED}Functionality not implemented ${NC}\n"
+  printf "${RED}Platform not supported ${NC}\n"
 }
 
 
@@ -103,6 +119,8 @@ distribution # sets OS and VER
 
 if [[ ${OS} == "Debian" ]]; then
   install_l4tm
+elif [[ ${OS} == "Ubuntu" ]]; then
+  install_ubuntu
 elif [[ ${OS} == "Redhat" ]]; then
   install_redhat
 else

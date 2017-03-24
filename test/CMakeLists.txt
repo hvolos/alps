@@ -30,6 +30,6 @@ add_subdirectory(integration)
 
 
 add_executable(test-util ${CMAKE_CURRENT_SOURCE_DIR}/util.cc)
-target_link_libraries(test-util pthread ${GTEST_LIBRARY} alps boost_program_options gtest)
+target_link_libraries(test-util pthread ${GTEST_LIBRARY} alps ${Boost_PROGRAM_OPTIONS_LIBRARY} gtest)
 
 install (TARGETS test-util DESTINATION bin)

@@ -75,6 +75,15 @@
 #include <boost/archive/binary_oarchive.hpp> 
 #include <boost/archive/binary_iarchive.hpp> 
 
+#ifdef __ARCH_FAM__
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <fam_atomic.h>
+#ifdef __cplusplus
+}
+#endif
+#endif // __ARCH_FAM__
 
 #include "alps/common/assert_nd.hh"
 
@@ -467,6 +476,11 @@ ErrorCode TmpfsRegionFile::map(void* addr_hint, size_t length, int prot, int fla
     }
     LOG(trace) << "mmap addr_hint: " << addr_hint << ", length: " << length << ", fd: " << fd_ << ", offset: " << offset << ", ret: " << p;
 
+#ifdef __ARCH_FAM__
+    LOG(trace) << "registering region with the fam atomic library: "
+               << "range_addr: " << p << "--" << (void*) (uintptr_t(p) + length);
+    ASSERT_ND(0 == fam_atomic_register_region(p, length, fd_, offset));
+#endif // __ARCH_FAM__
 
     *mapped_addr = p;
     return kErrorCodeOk;
@@ -479,6 +493,10 @@ ErrorCode TmpfsRegionFile::unmap(void* addr, size_t length)
         return kErrorCodeMemoryUnmapFailed;
     }
 
+#ifdef __ARCH_FAM__
+    LOG(trace) << "unregistering region with the fam atomic library" ;
+    fam_atomic_unregister_region(addr, length);
+#endif // __ARCH_FAM__
 
     return kErrorCodeOk;
 }
