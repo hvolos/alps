@@ -29,7 +29,10 @@ $ ./install-dep
 
 Please note that the above script requires 'sudo' privilege rights.
 
-### Install libfam-atomic
+In addition, please build and install the following dependencies from source 
+as no packages are available at the moment.
+
+- Install libfam-atomic
 
   ```
   $ cd ~
@@ -58,15 +61,15 @@ $ mkdir $ALPS_BUILD
 Prepare the ALPS build system.
 * For Debug build type (default):
 
- ```
- $ cmake $ALPS_BUILD -DTARGET_ARCH_MEM=NV-NCC-FAM -DCMAKE_BUILD_TYPE=Debug
- ```
+  ```
+  $ cmake $ALPS_BUILD -DTARGET_ARCH_MEM=NV-NCC-FAM -DCMAKE_BUILD_TYPE=Debug
+  ```
 
 * For Release build type:
 
- ```
- $ cmake $ALPS_BUILD -DTARGET_ARCH_MEM=NV-NCC-FAM -DCMAKE_BUILD_TYPE=Release
- ```
+  ```
+  $ cmake $ALPS_BUILD -DTARGET_ARCH_MEM=NV-NCC-FAM -DCMAKE_BUILD_TYPE=Release
+  ```
 
 Finally, build ALPS:
 
