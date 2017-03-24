@@ -20,7 +20,7 @@
 #  MINT_LIBRARY     : Library path of mint library
 #  MINT_FOUND       : True if found.
 
-set(HOLODECK_DIR /scratch/workspace/holodeck) 
+set(HOLODECK_DIR /home/volos/workspace/holodeck) 
 
 find_path(MINT_INCLUDE_DIR NAME mint/mint.h
   HINTS $ENV{HOME}/local/include /opt/local/include /usr/local/include /usr/include ${HOLODECK_DIR}/include/holodeck

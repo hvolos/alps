@@ -29,6 +29,21 @@ $ ./install-dep
 
 Please note that the above script requires 'sudo' privilege rights.
 
+### Install libfam-atomic
+
+  ```
+  $ cd ~
+  $ sudo apt-get install autoconf autoconf-archive libtool
+  $ sudo apt-get --no-install-recommends install asciidoc xsltproc xmlto
+  $ git clone https://github.com/FabricAttachedMemory/libfam-atomic.git
+  $ cd libfam-atomic
+  $ bash autogen.sh
+  $ ./configure
+  $ make
+  $ sudo make install
+  ```
+
+
 ## Compilation
 
 It is recommended to build ALPS outside the source tree to avoid polluting the
