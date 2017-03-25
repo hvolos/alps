@@ -1,10 +1,10 @@
-# ALPS
+# ALPS: Allocator Layers for Persistent Shared Memory
 
 ![ALPS](doc/figures/alps-logo.png)
 
-ALPS (Allocator for Persistent Shared memory) provides a collection of 
-low-level abstraction layers that relief the user from the details of 
-mapping, addressing, and allocating persistent shared memory.
+ALPS provides a collection of low-level abstraction layers that relief 
+the user from the details of mapping, addressing, and allocating persistent 
+shared memory.
 These layers can be used as building blocks for building higher-level 
 memory allocators such as persistent heaps.
 Shared persistent memory refers to non-volatile memory shared among
