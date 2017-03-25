@@ -79,10 +79,6 @@ $ make
 
 ## Testing
 
-Once ALPS is built, unit tests can be run using CTest or Holodeck Mint.
-
-### CTest
-
 CTest is the simplest way to run the tests. It is best used when one needs
 to quickly run just the unit tests against a local LFS installation that
 serves as the development platform.
@@ -91,29 +87,6 @@ serves as the development platform.
 $ cd $ALPS_BUILD
 ctest -R lfs
 ```
-
-### Holodeck Mint
-
-Holodeck is recommended over CTest when one needs to run all available tests,
-including unit and integration tests, against an LFS installation running on
-The Machine (emulated through FAME or TMAS).
-
-To deploy ALPS and run tests:
-
-```
-cd $ALPS_SRC/scripts/deploy
-./alps -c lfs.yaml install
-./alps -c lfs.yaml unit     # run unit tests
-./alps -c lfs.yaml test     # run integration tests
-```
-
-The script requires a Librarian installation file named *lfs.yaml* in the
-working directory. This configuration file describes an existing Librarian
-installation. ALPS ships with such a configuration file that you can use
-and adapt to your setup.
-Please refer to [Holodeck's Librarian documentation](https://github.hpe.com/labs/holodeck/blob/master/doc/librarian.md)
-for instructions on how to setup Librarian using Holodeck MICA.
-
 
 ## Configuring Runtime Environment
 
