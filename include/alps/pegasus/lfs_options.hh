@@ -24,7 +24,7 @@ namespace alps {
 struct LfsOptions: public Externalizable {
     unsigned int  kDefaultNode = 1;
     unsigned int  kDefaultNodeCount = 1;
-    size_t kDefaultBookSizeBytes = 8*1024LLU*1024LLU*1024LLU;
+    size_t kDefaultBookSizeBytes = 8*1024LLU*1024LLU;
 
     /**
      * Constructs option values with default values
