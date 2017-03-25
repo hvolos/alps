@@ -30,9 +30,6 @@ add_subdirectory(common)
 # persistent global address space library
 #add_subdirectory(pegasus)
 
-# persistent global heap library
-#add_subdirectory(globalheap)
-
 # heap layers
 add_subdirectory(layers)
 
