@@ -9,9 +9,8 @@ These layers can be used as building blocks for building higher-level
 memory allocators such as persistent heaps.
 Shared persistent memory refers to non-volatile memory shared among
 multiple compute nodes and can take different forms, such as
-disaggregated non-volatile memory accessible over a fabric (also
-known as fabric-attached memory or FAM) or multi-socket non-volatile
-memory.
+disaggregated non-volatile memory accessible over a fabric, also
+known as fabric-attached memory (FAM).
 
 The main abstraction provided by ALPS is a Global Symmetric Heap that
 lets users allocate variable-size chunks of persistent memory through
@@ -21,42 +20,9 @@ an optimized in-memory shuffle implementation where workers produce
 and consume data directly from the shared heap instead of exchanging
 data through network I/O.
 
-## Quick Start Guide
-
-This section provides a quick introduction to setting up and testing
-ALPS on a CC-NUMA machine.
-We assume the ALPS source code is already deployed in directory $ALPS.
-
-1. Change into the ALPS source directory:
-
- ```
- $ cd $ALPS
- ```
-
-2. Install dependencies:
-
- ```
- $ ./install-dep
- ```
-
-3. Build ALPS
-
- ```
- $ mkdir build
- $ cd build
- $ cmake .. -DTARGET_ARCH_MEM=CC-NUMA
- $ make
- ```
-
-4. Run unit tests against tmpfs (located at: /dev/shm):
-
- ```
- ctest -R tmpfs
- ```
-
 ## Installation
 
-Instructions for building and installing ALPS on different platforms and
+Dependencies and instructions for building and installing ALPS on different platforms and
 environments is available on a platform by platform basis:
 
 * [CC-NUMA](INSTALL-NUMA.md): Linux platform on Cache-Coherent Non-Uniform Memory
