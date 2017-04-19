@@ -1,5 +1,9 @@
 # ALPS: Allocator Layers for Persistent Shared Memory
 
+Author:  Haris Volos (haris.volos@hpe.com)
+
+## Description
+
 ![ALPS](doc/figures/alps-logo.png)
 
 ALPS provides a collection of low-level abstraction layers that relief 
@@ -20,15 +24,107 @@ an optimized in-memory shuffle implementation where workers produce
 and consume data directly from the shared heap instead of exchanging
 data through network I/O.
 
-## Installation
+## Master Source
 
-Dependencies and instructions for building and installing ALPS on different platforms and
-environments is available on a platform by platform basis:
+The multi-platform version of ALPS providing the global symmetric heap 
+for several platforms, including CC-NUMA and FAM systems, is available 
+in the `fam` branch of the `alps` repository. 
+Please make sure you switch to the `fam` branch.
 
-* [CC-NUMA](INSTALL-NUMA.md): Linux platform on Cache-Coherent Non-Uniform Memory
-Access (CC-NUMA) architecture
-* [FAM](INSTALL-FAM.md): Linux for The Machine (L4TM) on Fabric-Attached Memory (FAM)
-architecture
+Multi-platform branch: https://github.com/hvolos/alps/tree/fam
+
+## Maturity
+
+Alpha release
+
+## Dependencies
+
+- Install additional packages
+
+  ```
+  $ sudo apt-get install build-essential cmake libboost-all-dev
+  ```
+
+- Install libpmem
+
+  ```
+  $ sudo apt-get install autoconf pkg-config doxygen graphviz
+  $ git clone https://github.com/FabricAttachedMemory/nvml.git
+  $ cd nvml
+  $ make
+  $ sudo make install
+  ```
+
+- Install libfam-atomic
+
+  ```
+  $ cd ~
+  $ sudo apt-get install autoconf autoconf-archive libtool
+  $ sudo apt-get --no-install-recommends install asciidoc xsltproc xmlto
+  $ git clone https://github.com/FabricAttachedMemory/libfam-atomic.git
+  $ cd libfam-atomic
+  $ bash autogen.sh
+  $ ./configure
+  $ make
+  $ sudo make install
+  ```
+
+- Setup [FAME](https://github.com/HewlettPackard/mdc-toolkit/blob/master/guide-FAME.md) if you want to try ALPS on top of FAM.
+
+## Build & Test
+
+1. Download the source code:
+
+ ```
+ $ git clone https://github.com/hvolos/alps.git
+ $ git checkout -t origin/fam
+ ```
+
+2. Change into the source directory (assuming the code is at directory $NVMM):
+
+ ```
+ $ cd $ALPS
+ ```
+
+3. Build
+
+ On CC-NUMA systems:
+
+ ```
+ $ mkdir build
+ $ cd build
+ $ cmake .. -DTARGET_ARCH_MEM=CC-NUMA
+ $ make
+ ```
+
+ On FAME:
+
+ ```
+ $ mkdir build
+ $ cd build
+ $ cmake .. -DTARGET_ARCH_MEM=NV-NCC-FAM
+ $ make
+ ```
+
+ The default build type is Release. To switch between Release and Debug:
+ ```
+ $ cmake .. -DCMAKE_BUILD_TYPE=Release
+ $ cmake .. -DCMAKE_BUILD_TYPE=Debug
+ ```
+
+4. Test
+
+ On CC-NUMA systems:
+ 
+ ```
+ $ ctest -R tmpfs
+ ```
+
+ On FAME:
+
+ ```
+ $ ctest -R lfs
+ ```
 
 ## Usage
 
@@ -65,6 +161,37 @@ call that frees all the blocks associated with a given generation.
 Deallocating memory through a bulk-free is useful for releasing
 memory when recovering from a crash.
 
+## Configuring Runtime Environment
+
+ALPS has many operating parameters, which you can configure before starting a
+program using ALPS.
+ALPS initializes its internals by loading configuration options in the
+following order:
+* Load options from a system-wide configuration file: /etc/default/alps.[yml|yaml],
+* Load options from the file referenced by the value of the environment
+variable $ALPS_CONF, and
+* Load options through a user-defined configuration file or object (passed
+  through the ALPS API)
+
+Deploying and using ALPS on a platform based on the Librarian File System (LFS)
+and Fabric-Attached Memory (FAM) requires a properly configured environment.
+The environment is set up through the use of ALPS configuration files.
+One can either use [Holodeck](http://github.hpe.com/labs/holodeck)
+to automatically configure the environment or configure it manually.
+
+To manually configure, set the following configuration options in
+a per-node configuration file (preferably the system-wide configuration
+file):
+
+```
+LfsOptions:
+  node: {{ lfs_node }}
+  node_count: {{ lfs_node_count }}
+  book_size_bytes: {{ lfs_book_size_bytes }}
+```
+
+These options **must** match the ones used by the Librarian Server and
+Client running on the respective node.
 
 ## Example Programs
 
@@ -75,3 +202,13 @@ ALPS comes with several samples in the `examples` directory.
 We follow the Google C++ style guide available here:
 
 https://google.github.io/styleguide/cppguide.html
+
+## Notes:
+
+No support for remote free: i.e., a process cannot free memory
+allocated by another concurrently active process.
+
+## See Also:
+
+- [Managed Data Structures (MDS)](https://github.com/HewlettPackard/mdc-toolkit/blob/master/README-MDS.md)
+- [Multi-Process Garbage Collector (MPGC)](https://github.com/HewlettPackard/mdc-toolkit/blob/master/README-MPGC.md)
